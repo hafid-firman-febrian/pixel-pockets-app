@@ -1,0 +1,11 @@
+# Template konfigurasi signing release.
+# Salin file ini menjadi `key.properties` (di folder android/), lalu isi nilai asli.
+# JANGAN commit key.properties atau file .jks — keduanya sudah di-gitignore.
+#
+# storeFile: path absolут ke keystore .jks yang kamu buat dengan keytool.
+# Nilai password & alias = yang kamu masukkan saat membuat keystore.
+
+storeFile=/Users/admin/pixelpocket-release.jks
+storePassword=GANTI_DENGAN_STORE_PASSWORD
+keyAlias=pixelpocket
+keyPassword=GANTI_DENGAN_KEY_PASSWORD
