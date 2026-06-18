@@ -14,14 +14,22 @@
 
 ## Arsitektur
 
-Logic dan UI **wajib dipisah**. Setiap feature mengikuti 4 lapisan:
+Logic dan UI **wajib dipisah**. Setiap feature dibagi menjadi 4 blok utama (`data`, `domain`, `application`, `presentation`) dengan sub-lapisan berikut:
 
 ```
 features/<feature>/
-├── models/          ← fromJson / toJson saja
-├── repositories/    ← semua API call & logic
-├── providers/       ← state saja, panggil repository
-└── screens/         ← UI only, tidak ada logic
+├── data/
+│   ├── datasources/   ← Dio/SDK wrapper, kembalikan DTO, lempar DioException
+│   ├── dtos/          ← fromJson / toJson + fromDomain / toDomain
+│   └── repositories/  ← map DTO↔domain, DioException → Failure
+├── domain/
+│   └── models/        ← entity murni (tanpa JSON, Dio, Flutter)
+├── application/
+│   └── services/      ← business logic (tanpa Riverpod, tanpa widget)
+└── presentation/
+    ├── states/        ← Riverpod FutureProvider / StateProvider
+    ├── controllers/   ← glue Riverpod: panggil service, invalidate state
+    ├── screens/       ← UI only
     └── widgets/
 ```
 
@@ -29,10 +37,14 @@ features/<feature>/
 
 | Lapisan | Boleh | Tidak boleh |
 |---|---|---|
-| `model` | fromJson, toJson | — |
-| `repository` | Dio, parsing, logic | Import widget |
-| `provider` | Riverpod, panggil repo | Import widget |
-| `screen` | Widget, ref.watch | Dio, parsing, logic |
+| `domain/models` | entity murni, getter | JSON, Dio, Flutter, Riverpod |
+| `data/dtos` | fromJson/toJson, map ke domain | Dio, widget |
+| `data/datasources` | Dio, DTO, endpoints | map domain, map Failure, widget |
+| `data/repositories` | datasource, DTO, domain, Failure | Dio langsung, widget |
+| `application/services` | repository, domain | Riverpod state, widget, Dio |
+| `presentation/states` | Riverpod, service via DI | Dio, parsing |
+| `presentation/controllers` | Riverpod (Ref), service | Dio, parsing |
+| `presentation/screens+widgets` | Widget, ref.watch | Dio, parsing, logic |
 
 ---
 
@@ -251,33 +263,30 @@ class ChartModel {
 
 ### Repository
 ```dart
+// features/transactions/data/repositories/transaction_repository.dart
 class TransactionRepository {
-  final Dio _dio;
-  TransactionRepository(this._dio);
+  TransactionRepository(this._remote);
 
-  Future<List<TransactionModel>> getAll({
-    int? salaryPeriodId,
-    String? filter,
-    String? transactionType,
-    int page = 1,
-    int limit = 20,
-  }) async {
-    final response = await _dio.get('/api/transactions', queryParameters: {
-      if (salaryPeriodId != null) 'salary_period_id': salaryPeriodId,
-      if (filter != null) 'filter': filter,
-      if (transactionType != null) 'transaction_type': transactionType,
-      'page': page,
-      'limit': limit,
-    });
-    final list = response.data['data'] as List;
-    return list.map((e) => TransactionModel.fromJson(e)).toList();
+  final TransactionRemoteDataSource _remote; // tidak pegang Dio langsung
+
+  Future<List<TransactionModel>> getAll(TransactionFilter filter) async {
+    try {
+      final dtos = await _remote.getAll(filter);
+      return dtos.map((d) => d.toDomain()).toList();
+    } on DioException catch (e) {
+      throw Failure.fromDio(e);
+    }
   }
 }
+
+final transactionRepositoryProvider = Provider<TransactionRepository>(
+  (ref) => TransactionRepository(ref.watch(transactionRemoteDataSourceProvider)),
+);
 ```
 
-### Provider
+### Provider (presentation/states/)
 ```dart
-// State filter
+// features/transactions/presentation/states/transaction_state.dart
 final transactionFilterProvider = StateProvider<TransactionFilter>(
   (ref) => const TransactionFilter(),
 );
@@ -285,13 +294,13 @@ final transactionFilterProvider = StateProvider<TransactionFilter>(
 // Data — otomatis refetch saat filter berubah
 final transactionsProvider = FutureProvider<List<TransactionModel>>((ref) {
   final filter = ref.watch(transactionFilterProvider);
-  final repo = ref.read(transactionRepositoryProvider);
-  return repo.getAll(salaryPeriodId: filter.salaryPeriodId);
+  return ref.watch(transactionServiceProvider).list(filter); // lewat service
 });
 ```
 
 ### Screen
 ```dart
+// features/transactions/presentation/screens/transaction_screen.dart
 class TransactionScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -305,9 +314,12 @@ class TransactionScreen extends ConsumerWidget {
 }
 ```
 
-### Ganti filter dari screen
+### Write via controller (presentation/controllers/)
 ```dart
-// Cukup update state, provider refetch otomatis
+// Panggil controller untuk mutasi; controller invalidate state setelahnya
+await ref.read(transactionControllerProvider).delete(tx.id);
+
+// Ganti filter — provider refetch otomatis
 ref.read(transactionFilterProvider.notifier).state = TransactionFilter(
   salaryPeriodId: selectedPeriod.id,
 );
