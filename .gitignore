@@ -43,3 +43,6 @@ app.*.map.json
 /android/app/debug
 /android/app/profile
 /android/app/release
+
+# Planning docs (local only, not tracked)
+docs/superpowers/
