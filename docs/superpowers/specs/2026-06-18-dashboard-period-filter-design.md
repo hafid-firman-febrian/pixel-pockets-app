@@ -18,7 +18,9 @@ all salary periods (from `GET /api/salary-periods`), the user picks one (or
 | Source of periods | `GET /api/salary-periods` (a new `salary_period` feature) |
 | Summary data | Wire the REAL `GET /api/summary` (replace the current stub), with `salary_period_id` |
 | Filter scope | Dashboard only (does NOT touch transactions) |
-| Picker UI | Bottom sheet list, with a "Semua Periode" (no filter) item on top |
+| Default selection | Auto: the period containing today's date (`DateTime.now()`); falls back to "Semua Periode" if none |
+| Picker UI | Bottom sheet: a client-side **year filter** (default = current year) + "Semua Periode" item + the periods of the selected year |
+| Selection model | `sealed class PeriodSelection` = `AutoPeriod` (default) \| `AllPeriods` \| `SpecificPeriod(period)`; an `effectivePeriodProvider` resolves it to a `SalaryPeriod?` |
 | Feature folder | `lib/features/salary_period/` (singular — the empty folder already present) |
 | by-category list | OUT OF SCOPE (separate future work) |
 
