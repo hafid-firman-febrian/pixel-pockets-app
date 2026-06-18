@@ -35,6 +35,11 @@ Diubah (dashboard):
 - `lib/features/dashboard/application/services/dashboard_service.dart`
 - `lib/features/dashboard/presentation/states/dashboard_state.dart`
 - `lib/features/dashboard/presentation/screens/widgets/period_filter_card.dart`
+- `lib/features/dashboard/presentation/screens/widgets/transaction_summary_card.dart` (Task 5 — shimmer)
+- `lib/features/dashboard/presentation/screens/dashboard_screen.dart` (Task 5 — narrow `.when`)
+
+Dependency (Task 5):
+- `pubspec.yaml` — tambah `shimmer`
 
 > **Catatan test (untuk nanti):** kandidat test yang berguna saat Anda kerjakan sendiri: (1) `SalaryPeriodDto.fromJson`/`toDomain` termasuk `salaryAmount` null; (2) `salaryPeriodsProvider` me-map DTO→domain dan memunculkan `Failure` saat `DioException` (override `salaryPeriodRemoteDataSourceProvider` dgn fake); (3) `dashboardSummaryProvider` mengirim id period terpilih ke service dan refetch saat `selectedPeriodProvider` berubah (override `dashboardRepositoryProvider` dgn fake pencatat).
 
@@ -675,6 +680,380 @@ git commit -m "feat(dashboard): interactive period filter card with bottom-sheet
 
 ---
 
+## Task 5: Skeleton shimmer untuk angka summary
+
+**Files:**
+- Modify: `pubspec.yaml` (tambah dependency `shimmer`)
+- Modify: `lib/features/dashboard/presentation/screens/widgets/transaction_summary_card.dart`
+- Modify: `lib/features/dashboard/presentation/screens/dashboard_screen.dart`
+
+**Interfaces:**
+- Consumes: `dashboardSummaryProvider` (Task 3), `TransactionSummary`.
+- Produces: `TransactionSummaryCard({required TransactionSummary summary, bool isLoading = false})` — saat `isLoading`, tiap **angka** dirender sebagai shimmer-bone; **label** tetap tampil.
+
+> **Penjelasan (belajar):** Dua perubahan. (1) Di `dashboard_screen.dart`, `.when` TIDAK lagi membungkus seluruh body — hanya **slot card** saja. Jadi header, `PeriodFilterCard`, dan label "EXPENSES BY CATEGORY" selalu tampil; hanya area angka summary yang punya status loading/error. (2) Di card, label seperti "BALANCE"/"INCOME"/"Rp" adalah `Text` biasa yang selalu dirender; tiap **angka** dibungkus helper `_ShimmerBox` saat `isLoading` (kotak abu-abu beranimasi via package `shimmer`), atau `Text` nilai asli saat sudah ada data. Saat loading kita kirim `summary` placeholder (nol) — angkanya tidak dibaca karena diganti bone. Error dibuat sederhana: satu baris pesan di slot card.
+
+- [ ] **Step 1: Tambah dependency `shimmer`**
+
+Run:
+```bash
+flutter pub add shimmer
+```
+Expected: `pubspec.yaml` bertambah baris `shimmer: ^3.0.0` (atau versi terbaru), `flutter pub get` berjalan sukses.
+
+- [ ] **Step 2: Rewrite `transaction_summary_card.dart` dengan shimmer per-angka**
+
+Ganti SELURUH isi `lib/features/dashboard/presentation/screens/widgets/transaction_summary_card.dart` dengan:
+```dart
+import 'package:flutter/material.dart';
+import 'package:pixel_pocket/core/theme/app_color.dart';
+import 'package:pixel_pocket/core/theme/app_spacing.dart';
+import 'package:pixel_pocket/core/theme/app_text_style.dart';
+import 'package:pixel_pocket/core/utils/currency_formatter.dart';
+import 'package:pixel_pocket/features/dashboard/domain/models/transaction_summary.dart';
+import 'package:shimmer/shimmer.dart';
+
+class TransactionSummaryCard extends StatelessWidget {
+  const TransactionSummaryCard({
+    super.key,
+    required this.summary,
+    this.isLoading = false,
+  });
+
+  final TransactionSummary summary;
+  final bool isLoading;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Container(
+          decoration: BoxDecoration(
+            color: AppColors.surface,
+            border: Border.all(color: AppColors.border),
+            boxShadow: [
+              BoxShadow(
+                color: AppColors.border,
+                offset: Offset(0, 5),
+                blurRadius: 0,
+              ),
+            ],
+          ),
+          child: Padding(
+            padding: AppSpacing.card,
+            child: SizedBox(
+              width: double.infinity,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Label statis — selalu tampil
+                  Text(
+                    'BALANCE',
+                    style: AppTextStyles.bodyNormal.copyWith(
+                      color: AppColors.textSecondary,
+                    ),
+                  ),
+                  SizedBox(height: AppSpacing.item),
+                  // Angka balance — bone saat loading
+                  if (isLoading)
+                    const _ShimmerBox(width: 180, height: 28)
+                  else
+                    Text.rich(
+                      TextSpan(
+                        children: [
+                          TextSpan(
+                            text: 'Rp ',
+                            style: AppTextStyles.bodyNormal.copyWith(
+                              color: AppColors.textPrimary,
+                              fontWeight: FontWeight.w900,
+                            ),
+                          ),
+                          TextSpan(
+                            text: CurrencyFormatter.formatWhileTyping(
+                              summary.balance.toString(),
+                            ),
+                            style: AppTextStyles.numericXl.copyWith(
+                              color: AppColors.textPrimary,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  SizedBox(height: AppSpacing.section),
+                  Divider(color: AppColors.border),
+                  SizedBox(height: AppSpacing.section),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceAround,
+                    children: [
+                      _TotalTransaction(
+                        summary: summary,
+                        isIncome: true,
+                        isLoading: isLoading,
+                      ),
+                      SizedBox(width: AppSpacing.s24),
+                      _TotalTransaction(
+                        summary: summary,
+                        isIncome: false,
+                        isLoading: isLoading,
+                      ),
+                    ],
+                  ),
+                  SizedBox(height: AppSpacing.section),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    children: [
+                      Text('SPENT', style: AppTextStyles.overlineSm),
+                      if (isLoading)
+                        const _ShimmerBox(width: 44, height: 16)
+                      else
+                        Text(
+                          summary.spentPercentageString,
+                          style: AppTextStyles.overlineLg.copyWith(
+                            color: AppColors.primary,
+                          ),
+                        ),
+                    ],
+                  ),
+                  SizedBox(height: AppSpacing.s4),
+                  // Bar progress — bone saat loading
+                  if (isLoading)
+                    const _ShimmerBox(width: double.infinity, height: 10)
+                  else
+                    LayoutBuilder(
+                      builder: (context, constraints) {
+                        final percentage = summary.spentPercentage.clamp(0.0, 1.0);
+                        final spentWidth = constraints.maxWidth * percentage;
+                        return Container(
+                          width: double.infinity,
+                          height: 5,
+                          decoration: BoxDecoration(color: AppColors.border),
+                          child: Align(
+                            alignment: Alignment.centerLeft,
+                            child: Container(
+                              width: spentWidth,
+                              height: 10,
+                              decoration: BoxDecoration(color: AppColors.expense),
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _TotalTransaction extends StatelessWidget {
+  const _TotalTransaction({
+    required this.summary,
+    required this.isIncome,
+    this.isLoading = false,
+  });
+
+  final TransactionSummary summary;
+  final bool isIncome;
+  final bool isLoading;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // Label (titik warna + INCOME/EXPENSE) — selalu tampil
+        Row(
+          children: [
+            Container(
+              width: 10,
+              height: 10,
+              decoration: BoxDecoration(
+                color: isIncome ? AppColors.income : AppColors.expense,
+              ),
+            ),
+            SizedBox(width: AppSpacing.s4),
+            Text(
+              isIncome ? 'INCOME' : 'EXPENSE',
+              style: AppTextStyles.overlineSm,
+            ),
+          ],
+        ),
+        SizedBox(height: AppSpacing.s4),
+        // Angka — bone saat loading
+        if (isLoading)
+          const _ShimmerBox(width: 80, height: 16)
+        else
+          Text(
+            CurrencyFormatter.format(
+              isIncome ? summary.totalIncome : summary.totalExpense,
+            ),
+            style: AppTextStyles.bodyNormal.copyWith(
+              color: isIncome ? AppColors.income : AppColors.expense,
+              fontWeight: FontWeight.w900,
+            ),
+          ),
+      ],
+    );
+  }
+}
+
+/// Kotak abu-abu beranimasi untuk placeholder angka yang sedang dimuat.
+class _ShimmerBox extends StatelessWidget {
+  const _ShimmerBox({required this.width, required this.height});
+
+  final double width;
+  final double height;
+
+  @override
+  Widget build(BuildContext context) {
+    return Shimmer.fromColors(
+      baseColor: AppColors.border,
+      highlightColor: AppColors.surface,
+      child: Container(
+        width: width,
+        height: height,
+        decoration: BoxDecoration(
+          color: AppColors.border,
+          borderRadius: BorderRadius.circular(2),
+        ),
+      ),
+    );
+  }
+}
+```
+
+- [ ] **Step 3: Persempit `.when` di `dashboard_screen.dart`**
+
+Ganti SELURUH isi `lib/features/dashboard/presentation/screens/dashboard_screen.dart` dengan:
+```dart
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:pixel_pocket/core/theme/app_color.dart';
+import 'package:pixel_pocket/core/theme/app_spacing.dart';
+import 'package:pixel_pocket/core/theme/app_text_style.dart';
+import 'package:pixel_pocket/core/widgets/pixel_button.dart';
+import 'package:pixel_pocket/features/auth/presentation/controllers/auth_controller.dart';
+import 'package:pixel_pocket/features/dashboard/domain/models/transaction_summary.dart';
+import 'package:pixel_pocket/features/dashboard/presentation/states/dashboard_state.dart';
+import 'package:pixel_pocket/features/dashboard/presentation/screens/widgets/period_filter_card.dart';
+import 'package:pixel_pocket/features/dashboard/presentation/screens/widgets/transaction_summary_card.dart';
+import 'package:pixelarticons/pixel.dart';
+
+/// Nilai dummy hanya untuk memberi bentuk skeleton saat loading.
+const _placeholderSummary = TransactionSummary(
+  totalIncome: 0,
+  totalExpense: 0,
+  balance: 0,
+  transactionCount: 0,
+);
+
+class DashboardScreen extends ConsumerWidget {
+  const DashboardScreen({super.key});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final summaryAsync = ref.watch(dashboardSummaryProvider);
+    return SafeArea(
+      child: Scaffold(
+        body: Padding(
+          padding: EdgeInsets.symmetric(vertical: AppSpacing.section),
+          child: Column(
+            children: [
+              Padding(
+                padding: AppSpacing.card,
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      '~\$ Pixel-Pocket',
+                      style: AppTextStyles.displayMedium,
+                    ),
+                    PixelButton(
+                      onPressed: () =>
+                          ref.read(authControllerProvider.notifier).logout(),
+                      variant: PixelButtonVariant.danger,
+                      icon: Pixel.logout,
+                      size: PixelButtonSize.sm,
+                    ),
+                  ],
+                ),
+              ),
+              SizedBox(height: AppSpacing.section),
+              const PeriodFilterCard(),
+              SizedBox(height: AppSpacing.section),
+              Padding(
+                padding: AppSpacing.screen,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Hanya slot card ini yang punya status loading/error.
+                    summaryAsync.when(
+                      loading: () => const TransactionSummaryCard(
+                        summary: _placeholderSummary,
+                        isLoading: true,
+                      ),
+                      error: (e, _) => Padding(
+                        padding: AppSpacing.card,
+                        child: const Text('Gagal memuat ringkasan.'),
+                      ),
+                      data: (summary) =>
+                          TransactionSummaryCard(summary: summary),
+                    ),
+                    SizedBox(height: AppSpacing.section),
+                    Text(
+                      'EXPENSES BY CATEGORY',
+                      style: AppTextStyles.bodyNormal,
+                    ),
+                    SizedBox(height: AppSpacing.section),
+                    Container(
+                      decoration: BoxDecoration(
+                        color: AppColors.surface,
+                        border: Border.all(color: AppColors.border),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+```
+
+- [ ] **Step 4: Analyze + test**
+
+```bash
+flutter analyze
+flutter test
+```
+Expected: analyze tidak menambah issue; smoke test yang ada tetap lulus.
+
+- [ ] **Step 5: Verifikasi manual (jalankan app)**
+
+Run: `flutter run` (login Google aktif).
+Cek:
+1. Saat dibuka, header, PeriodFilterCard, dan label di card ("BALANCE", "INCOME", "EXPENSE", "SPENT") **langsung muncul**.
+2. Angka-angka summary tampil sebagai **shimmer** sampai data API datang, lalu berganti angka asli.
+3. Ganti period → angka kembali shimmer sebentar lalu update.
+4. Bila API gagal → slot card menampilkan teks "Gagal memuat ringkasan." (bagian lain tetap tampil).
+
+- [ ] **Step 6: Commit**
+
+```bash
+git add pubspec.yaml pubspec.lock lib/features/dashboard
+git commit -m "feat(dashboard): skeletonize summary numbers with shimmer while loading"
+```
+
+---
+
 ## Catatan akhir
 
-Setelah keempat task selesai dan Anda menulis test sendiri (lihat "Catatan test" di File map), jalankan `flutter test` penuh untuk memastikan semuanya hijau sebelum merge branch `feature/dashboard-period-filter`.
+Setelah kelima task selesai dan Anda menulis test sendiri (lihat "Catatan test" di File map), jalankan `flutter test` penuh untuk memastikan semuanya hijau sebelum merge branch `feature/dashboard-period-filter`.
