@@ -1,35 +1,37 @@
-// Smoke test: the app boots and renders the Transaksi screen shell.
+// Smoke test: with no Google session the app gates to the login screen.
 //
-// The transaction list itself makes a network call, so here we only verify
-// the app builds and the AppBar title is shown — no backend required.
+// We override the auth controller so the real google_sign_in plugin is never
+// touched (it isn't available under flutter test). A signed-out state drives
+// the router guard to /login.
 
-import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:pixel_pocket/core/router/app_router.dart';
-import 'package:pixel_pocket/core/theme/app_theme.dart';
-import 'package:pixel_pocket/features/transactions/providers/transaction_provider.dart';
+import 'package:pixel_pocket/features/auth/presentation/controllers/auth_controller.dart';
+import 'package:pixel_pocket/features/auth/presentation/states/auth_state.dart';
+import 'package:pixel_pocket/main.dart';
+
+/// Auth controller that resolves immediately to signed-out, with no SDK calls.
+class _SignedOutAuthController extends AuthController {
+  @override
+  AuthState build() => const AuthSignedOut();
+}
 
 void main() {
-  testWidgets('App boots to the Transaksi screen', (tester) async {
+  testWidgets('Gates to login when there is no session', (tester) async {
     await tester.pumpWidget(
       ProviderScope(
         overrides: [
-          // Stub the list so no real network call (and no Dio timer) fires.
-          transactionsProvider.overrideWith((ref) => Future.value([])),
+          authControllerProvider.overrideWith(_SignedOutAuthController.new),
         ],
-        child: MaterialApp.router(
-          theme: AppTheme.light,
-          routerConfig: appRouter,
-        ),
+        child: const PixelPocketApp(),
       ),
     );
 
     await tester.pumpAndSettle();
 
-    expect(find.text('Transaksi'), findsOneWidget);
-    expect(find.byIcon(Icons.add), findsOneWidget);
-    expect(find.text('Belum ada transaksi'), findsOneWidget);
+    // PixelButton meng-uppercase label-nya.
+    expect(find.text('SIGN IN WITH GOOGLE'), findsOneWidget);
+    expect(find.text('Pixel Pocket'), findsOneWidget);
   });
 }
