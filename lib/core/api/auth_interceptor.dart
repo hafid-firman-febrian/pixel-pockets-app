@@ -1,4 +1,5 @@
 import 'package:dio/dio.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../features/auth/providers/auth_provider.dart';
@@ -14,14 +15,15 @@ class AuthInterceptor extends Interceptor {
   static const _retriedKey = 'auth_retried';
 
   @override
-  void onRequest(
-    RequestOptions options,
-    RequestInterceptorHandler handler,
-  ) {
+  void onRequest(RequestOptions options, RequestInterceptorHandler handler) {
     final auth = _ref.read(authControllerProvider);
     if (auth is AuthSignedIn) {
       final token = auth.account.authentication.idToken;
+
       if (token != null) {
+        print('${auth.account.authentication.idToken}');
+        Clipboard.setData(ClipboardData(text: token));
+        print('TOKEN length=${token.length} (sudah disalin ke clipboard)');
         options.headers['Authorization'] = 'Bearer $token';
       }
     }
@@ -29,10 +31,7 @@ class AuthInterceptor extends Interceptor {
   }
 
   @override
-  void onError(
-    DioException err,
-    ErrorInterceptorHandler handler,
-  ) async {
+  void onError(DioException err, ErrorInterceptorHandler handler) async {
     final is401 = err.response?.statusCode == 401;
     final alreadyRetried = err.requestOptions.extra[_retriedKey] == true;
 
