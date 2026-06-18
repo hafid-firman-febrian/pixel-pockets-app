@@ -4,7 +4,7 @@ import 'package:pixel_pocket/core/theme/app_color.dart';
 import 'package:pixel_pocket/core/theme/app_spacing.dart';
 import 'package:pixel_pocket/core/theme/app_text_style.dart';
 import 'package:pixel_pocket/core/widgets/pixel_button.dart';
-import 'package:pixel_pocket/features/auth/providers/auth_provider.dart';
+import 'package:pixel_pocket/features/auth/presentation/controllers/auth_controller.dart';
 import 'package:pixel_pocket/features/dashboard/presentation/states/dashboard_state.dart';
 import 'package:pixel_pocket/features/dashboard/presentation/screens/widgets/period_filter_card.dart';
 import 'package:pixel_pocket/features/dashboard/presentation/screens/widgets/transaction_summary_card.dart';

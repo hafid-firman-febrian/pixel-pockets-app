@@ -1,14 +1,14 @@
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_sign_in/google_sign_in.dart';
+import 'package:pixel_pocket/features/auth/auth_config.dart';
 
-import '../auth_config.dart';
-
-/// Thin wrapper over the `google_sign_in` v7 SDK. No widgets, no Riverpod —
-/// just the auth operations the rest of the app needs.
+/// Thin wrapper over the `google_sign_in` v7 SDK. No widgets, no Riverpod
+/// state — just the auth operations the rest of the app needs.
 ///
 /// In v7 the source of truth for sign-in changes is [authEvents]; the
 /// controller listens to it. Token retrieval re-reads the active account so
 /// it always returns the freshest available ID token.
-class AuthRepository {
+class AuthRemoteDataSource {
   final GoogleSignIn _google = GoogleSignIn.instance;
   bool _initialized = false;
 
@@ -33,7 +33,7 @@ class AuthRepository {
   }
 
   /// Non-interactive restore of a previous session. Returns the account when
-  /// one is available, otherwise null. Result may also surface via [authEvents].
+  /// one is available, otherwise null.
   Future<GoogleSignInAccount?> lightweightAuthentication() async {
     final attempt = _google.attemptLightweightAuthentication();
     return attempt == null ? null : await attempt;
@@ -61,3 +61,7 @@ class AuthRepository {
     return account?.authentication.idToken;
   }
 }
+
+final authRemoteDataSourceProvider = Provider<AuthRemoteDataSource>(
+  (ref) => AuthRemoteDataSource(),
+);

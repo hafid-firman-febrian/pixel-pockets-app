@@ -7,7 +7,8 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:pixel_pocket/features/auth/providers/auth_provider.dart';
+import 'package:pixel_pocket/features/auth/presentation/controllers/auth_controller.dart';
+import 'package:pixel_pocket/features/auth/presentation/states/auth_state.dart';
 import 'package:pixel_pocket/main.dart';
 
 /// Auth controller that resolves immediately to signed-out, with no SDK calls.

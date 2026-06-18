@@ -2,33 +2,9 @@ import 'dart:async';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_sign_in/google_sign_in.dart';
-
+import 'package:pixel_pocket/features/auth/application/services/auth_service.dart';
+import 'package:pixel_pocket/features/auth/presentation/states/auth_state.dart';
 import 'package:pixel_pocket/features/transactions/presentation/states/transaction_state.dart';
-import '../repositories/auth_repository.dart';
-
-/// Authentication state. [AuthUnknown] is the launch state — the router keeps
-/// the user on the splash screen until it resolves, avoiding a flicker to the
-/// login screen while the silent sign-in is still running.
-sealed class AuthState {
-  const AuthState();
-}
-
-class AuthUnknown extends AuthState {
-  const AuthUnknown();
-}
-
-class AuthSignedOut extends AuthState {
-  const AuthSignedOut();
-}
-
-class AuthSignedIn extends AuthState {
-  const AuthSignedIn(this.account);
-  final GoogleSignInAccount account;
-}
-
-final authRepositoryProvider = Provider<AuthRepository>(
-  (ref) => AuthRepository(),
-);
 
 final authControllerProvider = NotifierProvider<AuthController, AuthState>(
   AuthController.new,
@@ -39,7 +15,7 @@ final authControllerProvider = NotifierProvider<AuthController, AuthState>(
 class AuthController extends Notifier<AuthState> {
   StreamSubscription<GoogleSignInAuthenticationEvent>? _sub;
 
-  AuthRepository get _repo => ref.read(authRepositoryProvider);
+  AuthService get _service => ref.read(authServiceProvider);
 
   @override
   AuthState build() {
@@ -50,9 +26,9 @@ class AuthController extends Notifier<AuthState> {
 
   Future<void> _bootstrap() async {
     try {
-      await _repo.initialize();
-      _sub = _repo.authEvents.listen(_onEvent);
-      final account = await _repo.lightweightAuthentication();
+      await _service.initialize();
+      _sub = _service.authEvents.listen(_onEvent);
+      final account = await _service.lightweightAuthentication();
       if (account != null) {
         state = AuthSignedIn(account);
       } else if (state is AuthUnknown) {
@@ -74,13 +50,13 @@ class AuthController extends Notifier<AuthState> {
   }
 
   Future<void> login() async {
-    final account = await _repo.signIn();
+    final account = await _service.signIn();
     // account == null → user batal: biarkan tetap signed-out, bukan error.
     if (account != null) state = AuthSignedIn(account);
   }
 
   Future<void> logout() async {
-    await _repo.signOut();
+    await _service.signOut();
     state = const AuthSignedOut();
     ref.invalidate(transactionsProvider); // drop the previous user's data
   }
