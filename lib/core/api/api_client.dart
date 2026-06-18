@@ -5,9 +5,15 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'api_endpoints.dart';
+import 'auth_interceptor.dart';
 
-/// App-wide [ApiClient] singleton.
-final apiClientProvider = Provider<ApiClient>((ref) => ApiClient());
+/// App-wide [ApiClient] singleton, with the auth interceptor installed first
+/// so the Bearer header is attached before logging.
+final apiClientProvider = Provider<ApiClient>((ref) {
+  final client = ApiClient();
+  client.dio.interceptors.insert(0, AuthInterceptor(ref));
+  return client;
+});
 
 /// Convenience provider exposing the configured [Dio] instance.
 /// Repositories depend on this rather than constructing their own Dio.
@@ -53,7 +59,7 @@ class ApiClient {
     // Debug / profile: talk to the local dev server.
     // Web has no Platform; fall back to localhost there.
     if (kIsWeb) return ApiEndpoints.iosDevBaseUrl;
-    if (Platform.isAndroid) return ApiEndpoints.androidDevBaseUrl;
+    if (Platform.isAndroid) return ApiEndpoints.prodBaseUrl;
     return ApiEndpoints.iosDevBaseUrl;
   }
 }

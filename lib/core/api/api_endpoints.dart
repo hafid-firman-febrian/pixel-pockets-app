@@ -10,7 +10,9 @@ class ApiEndpoints {
   ApiEndpoints._();
 
   // ---- Base URLs ----
-  static const String prodBaseUrl = 'https://pixel-pocket.vercel.app';
+  // API live di Vercel (belum ada server lokal). Android debug juga diarahkan
+  // ke prodBaseUrl lewat ApiClient._resolveBaseUrl().
+  static const String prodBaseUrl = 'https://pixel-pocket-api.vercel.app';
   static const String androidDevBaseUrl = 'http://10.0.2.2:3000';
   static const String iosDevBaseUrl = 'http://localhost:3000';
 
