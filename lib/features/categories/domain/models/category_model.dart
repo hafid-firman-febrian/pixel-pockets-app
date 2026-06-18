@@ -1,4 +1,4 @@
-/// A spending/income category. Mirrors the `/api/categories` response.
+/// A spending/income category — pure domain entity. No JSON.
 class CategoryModel {
   final int id;
   final String name;
@@ -14,13 +14,4 @@ class CategoryModel {
 
   bool get isIncome => type == 'income';
   bool get isExpense => type == 'expense';
-
-  factory CategoryModel.fromJson(Map<String, dynamic> json) {
-    return CategoryModel(
-      id: json['id'] as int,
-      name: json['name'] as String,
-      color: json['color'] as String?,
-      type: json['type'] as String,
-    );
-  }
 }

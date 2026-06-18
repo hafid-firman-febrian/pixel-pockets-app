@@ -6,8 +6,8 @@ import 'package:pixel_pocket/core/theme/app_color.dart';
 import 'package:pixel_pocket/core/theme/app_spacing.dart';
 
 import '../../../../core/error/failure.dart';
-import '../../../categories/models/category_model.dart';
-import '../../../categories/providers/category_provider.dart';
+import 'package:pixel_pocket/features/categories/domain/models/category_model.dart';
+import 'package:pixel_pocket/features/categories/presentation/states/category_state.dart';
 import '../../models/transaction_model.dart';
 import '../../providers/transaction_provider.dart';
 
