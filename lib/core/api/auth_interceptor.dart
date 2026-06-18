@@ -21,6 +21,7 @@ class AuthInterceptor extends Interceptor {
       final token = auth.account.authentication.idToken;
 
       if (token != null) {
+        // TODO Hapus Jika sudah selesai testing
         print('${auth.account.authentication.idToken}');
         Clipboard.setData(ClipboardData(text: token));
         print('TOKEN length=${token.length} (sudah disalin ke clipboard)');
