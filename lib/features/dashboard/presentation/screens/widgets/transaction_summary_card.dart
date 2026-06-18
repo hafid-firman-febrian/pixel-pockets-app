@@ -3,7 +3,7 @@ import 'package:pixel_pocket/core/theme/app_color.dart';
 import 'package:pixel_pocket/core/theme/app_spacing.dart';
 import 'package:pixel_pocket/core/theme/app_text_style.dart';
 import 'package:pixel_pocket/core/utils/currency_formatter.dart';
-import 'package:pixel_pocket/features/dashboard/model/transaction_summary.dart';
+import 'package:pixel_pocket/features/dashboard/domain/models/transaction_summary.dart';
 
 class TransactionSummaryCard extends StatelessWidget {
   const TransactionSummaryCard({super.key, required this.summary});
