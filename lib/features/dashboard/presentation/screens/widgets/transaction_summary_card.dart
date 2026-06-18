@@ -126,7 +126,6 @@ class TransactionSummaryCard extends StatelessWidget {
 
 class _TotalTransaction extends StatelessWidget {
   const _TotalTransaction({
-    super.key,
     required this.summary,
     required this.isIncome,
   });

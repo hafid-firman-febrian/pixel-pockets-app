@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
 import 'package:pixel_pocket/core/error/failure.dart';
-import 'package:pixel_pocket/core/router/app_router.dart';
 import 'package:pixel_pocket/core/theme/app_color.dart';
 import 'package:pixel_pocket/core/theme/app_spacing.dart';
 import 'package:pixel_pocket/core/theme/app_text_style.dart';
@@ -24,23 +22,9 @@ class TransactionScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final transactionsAsync = ref.watch(transactionsProvider);
-    final router = GoRouter.of(context);
 
     return SafeArea(
       child: Scaffold(
-        // appBar: AppBar(
-        //   title: Text('~\$ Pixel-Pocket', style: AppTextStyles.headingLarge),
-
-        //   actions: [
-        //     PixelButton(
-        //       onPressed: () =>
-        //           ref.read(authControllerProvider.notifier).logout(),
-        //       variant: PixelButtonVariant.danger,
-        //       icon: Pixel.logout,
-        //       label: '',
-        //     ),
-        //   ],
-        // ),
         floatingActionButton: FloatingActionButton(
           onPressed: () => TransactionFormSheet.show(context),
           child: const Icon(Icons.add),
