@@ -52,5 +52,20 @@
 		<key>NSAllowsLocalNetworking</key>
 		<true/>
 	</dict>
+	<!-- Google Sign-In. TODO: ganti dengan nilai asli dari Google Cloud Console. -->
+	<key>GIDClientID</key>
+	<string>IOS_CLIENT_ID.apps.googleusercontent.com</string>
+	<key>CFBundleURLTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleTypeRole</key>
+			<string>Editor</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<!-- REVERSED_CLIENT_ID, mis. com.googleusercontent.apps.123-abc -->
+				<string>com.googleusercontent.apps.IOS_CLIENT_ID</string>
+			</array>
+		</dict>
+	</array>
 </dict>
 </plist>
