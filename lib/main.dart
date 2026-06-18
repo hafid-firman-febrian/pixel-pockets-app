@@ -8,16 +8,16 @@ void main() {
   runApp(const ProviderScope(child: PixelPocketApp()));
 }
 
-class PixelPocketApp extends StatelessWidget {
+class PixelPocketApp extends ConsumerWidget {
   const PixelPocketApp({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     return MaterialApp.router(
       title: 'Pixel Pocket',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.light,
-      routerConfig: appRouter,
+      routerConfig: ref.watch(routerProvider),
     );
   }
 }
