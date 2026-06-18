@@ -6,9 +6,10 @@ import 'package:pixel_pocket/features/dashboard/presentation/screens/dashboard_s
 import 'package:pixel_pocket/features/transactions/presentation/screens/transaction_screen.dart';
 import 'package:pixelarticons/pixel.dart';
 
-import '../../features/auth/providers/auth_provider.dart';
-import '../../features/auth/screens/login_screen.dart';
-import '../../features/auth/screens/splash_screen.dart';
+import '../../features/auth/presentation/controllers/auth_controller.dart';
+import '../../features/auth/presentation/screens/login_screen.dart';
+import '../../features/auth/presentation/screens/splash_screen.dart';
+import '../../features/auth/presentation/states/auth_state.dart';
 
 /// App route paths. As features land, register their screens below.
 class AppRoutes {
