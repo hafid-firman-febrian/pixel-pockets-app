@@ -1,0 +1,39 @@
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:pixel_pocket/core/theme/app_spacing.dart';
+import 'package:pixel_pocket/features/transactions/presentation/states/transaction_state.dart';
+
+/// Segmented "All / Income / Expense" filter. Reads and updates the shared
+/// [transactionFilterProvider]; the list re-fetches automatically.
+class TransactionTypeFilter extends ConsumerWidget {
+  const TransactionTypeFilter({super.key});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final current = ref.watch(
+      transactionFilterProvider.select((f) => f.transactionType),
+    );
+
+    return Padding(
+      padding: AppSpacing.sectionLabel,
+      child: SegmentedButton<String?>(
+        showSelectedIcon: false,
+        segments: const [
+          ButtonSegment(value: null, label: Text('Semua')),
+          ButtonSegment(value: 'income', label: Text('Masuk')),
+          ButtonSegment(value: 'expense', label: Text('Keluar')),
+        ],
+        selected: {current},
+        onSelectionChanged: (selection) {
+          final value = selection.first;
+          final notifier = ref.read(transactionFilterProvider.notifier);
+          notifier.update(
+            (f) => value == null
+                ? f.copyWith(clearTransactionType: true, page: 1)
+                : f.copyWith(transactionType: value, page: 1),
+          );
+        },
+      ),
+    );
+  }
+}
