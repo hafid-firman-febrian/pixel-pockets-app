@@ -1,17 +1,14 @@
 import 'package:flutter/material.dart';
+import 'package:pixel_pocket/core/theme/app_color.dart';
+import 'package:pixel_pocket/core/theme/app_spacing.dart';
 
-import '../../../../core/theme/app_theme.dart';
 import '../../../../core/utils/currency_formatter.dart';
 import '../../models/transaction_model.dart';
 
 /// One row in the transaction list. Pure presentation — all data comes in
 /// via [transaction]; taps/dismiss are delegated to the parent.
 class TransactionListItem extends StatelessWidget {
-  const TransactionListItem({
-    super.key,
-    required this.transaction,
-    this.onTap,
-  });
+  const TransactionListItem({super.key, required this.transaction, this.onTap});
 
   final TransactionModel transaction;
   final VoidCallback? onTap;
@@ -23,7 +20,10 @@ class TransactionListItem extends StatelessWidget {
 
     return ListTile(
       onTap: onTap,
-      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+      contentPadding: const EdgeInsets.symmetric(
+        horizontal: AppSpacing.section,
+        vertical: AppSpacing.s4,
+      ),
       leading: CircleAvatar(
         radius: 22,
         backgroundColor: color.withValues(alpha: 0.18),
@@ -49,7 +49,10 @@ class TransactionListItem extends StatelessWidget {
         style: const TextStyle(color: AppColors.textMuted, fontSize: 12.5),
       ),
       trailing: Text(
-        CurrencyFormatter.formatSigned(transaction.amount, isIncome: isIncome),
+        CurrencyFormatter.signed(
+          transaction.amount,
+          transaction.transactionType,
+        ),
         style: TextStyle(
           fontWeight: FontWeight.w700,
           color: isIncome ? AppColors.income : AppColors.expense,

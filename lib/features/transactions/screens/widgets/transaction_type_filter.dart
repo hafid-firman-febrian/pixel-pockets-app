@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:pixel_pocket/core/theme/app_spacing.dart';
 
 import '../../providers/transaction_provider.dart';
 
@@ -15,7 +16,7 @@ class TransactionTypeFilter extends ConsumerWidget {
     );
 
     return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 8, 16, 4),
+      padding: AppSpacing.sectionLabel,
       child: SegmentedButton<String?>(
         showSelectedIcon: false,
         segments: const [

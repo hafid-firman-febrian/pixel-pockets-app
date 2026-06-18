@@ -2,9 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
+import 'package:pixel_pocket/core/theme/app_color.dart';
+import 'package:pixel_pocket/core/theme/app_spacing.dart';
 
 import '../../../../core/error/failure.dart';
-import '../../../../core/theme/app_theme.dart';
 import '../../../categories/models/category_model.dart';
 import '../../../categories/providers/category_provider.dart';
 import '../../models/transaction_model.dart';
@@ -68,8 +69,9 @@ class _TransactionFormSheetState extends ConsumerState<TransactionFormSheet> {
     _amountController = TextEditingController(
       text: existing != null ? existing.amount.toStringAsFixed(0) : '',
     );
-    _descriptionController =
-        TextEditingController(text: existing?.description ?? '');
+    _descriptionController = TextEditingController(
+      text: existing?.description ?? '',
+    );
   }
 
   // A date with no time component, derived without Date.now sensitivity issues.
@@ -155,7 +157,7 @@ class _TransactionFormSheetState extends ConsumerState<TransactionFormSheet> {
     return Padding(
       padding: EdgeInsets.only(bottom: viewInsets),
       child: SingleChildScrollView(
-        padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
+        padding: AppSpacing.form,
         child: Form(
           key: _formKey,
           child: Column(
@@ -165,8 +167,8 @@ class _TransactionFormSheetState extends ConsumerState<TransactionFormSheet> {
               Center(
                 child: Container(
                   width: 40,
-                  height: 4,
-                  margin: const EdgeInsets.only(bottom: 16),
+                  height: AppSpacing.s4,
+                  margin: const EdgeInsets.only(bottom: AppSpacing.section),
                   decoration: BoxDecoration(
                     color: AppColors.divider,
                     borderRadius: BorderRadius.circular(2),
@@ -180,7 +182,7 @@ class _TransactionFormSheetState extends ConsumerState<TransactionFormSheet> {
                   fontWeight: FontWeight.w700,
                 ),
               ),
-              const SizedBox(height: 16),
+              const SizedBox(height: AppSpacing.section),
 
               // Income / Expense toggle
               SegmentedButton<String>(
@@ -195,7 +197,7 @@ class _TransactionFormSheetState extends ConsumerState<TransactionFormSheet> {
                   _categoryId = null; // category list depends on type
                 }),
               ),
-              const SizedBox(height: 16),
+              const SizedBox(height: AppSpacing.section),
 
               // Amount
               TextFormField(
@@ -214,7 +216,7 @@ class _TransactionFormSheetState extends ConsumerState<TransactionFormSheet> {
                   return null;
                 },
               ),
-              const SizedBox(height: 16),
+              const SizedBox(height: AppSpacing.section),
 
               // Category (depends on type)
               categoriesAsync.when(
@@ -226,8 +228,9 @@ class _TransactionFormSheetState extends ConsumerState<TransactionFormSheet> {
                 data: (all) {
                   final options = _categoriesForType(all);
                   final validIds = options.map((c) => c.id).toSet();
-                  final value =
-                      validIds.contains(_categoryId) ? _categoryId : null;
+                  final value = validIds.contains(_categoryId)
+                      ? _categoryId
+                      : null;
                   return DropdownButtonFormField<int>(
                     initialValue: value,
                     isExpanded: true,
@@ -257,7 +260,7 @@ class _TransactionFormSheetState extends ConsumerState<TransactionFormSheet> {
                   );
                 },
               ),
-              const SizedBox(height: 16),
+              const SizedBox(height: AppSpacing.section),
 
               // Date
               InkWell(
@@ -271,7 +274,7 @@ class _TransactionFormSheetState extends ConsumerState<TransactionFormSheet> {
                   child: Text(_dateFormat.format(_date)),
                 ),
               ),
-              const SizedBox(height: 16),
+              const SizedBox(height: AppSpacing.section),
 
               // Description
               TextFormField(
@@ -281,7 +284,7 @@ class _TransactionFormSheetState extends ConsumerState<TransactionFormSheet> {
                   labelText: 'Deskripsi (opsional)',
                 ),
               ),
-              const SizedBox(height: 24),
+              const SizedBox(height: AppSpacing.s24),
 
               ElevatedButton(
                 onPressed: _submitting ? null : _submit,
