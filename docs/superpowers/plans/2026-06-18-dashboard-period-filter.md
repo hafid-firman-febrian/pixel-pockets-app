@@ -268,10 +268,12 @@ Expected: analyze tidak menambah issue.
 - Produces:
   - `DashboardRemoteDataSource(Dio)` dengan `Future<SummaryDto> getSummary(int? salaryPeriodId)`.
   - `DashboardRepository.getSummary(int? periodId)`, `DashboardService.summary(int? periodId)`.
-  - `selectedPeriodProvider : StateProvider<SalaryPeriod?>` (null = Semua Periode).
-  - `dashboardSummaryProvider` sekarang membaca `selectedPeriodProvider` dan mengirim `period?.id`.
+  - `PeriodSelection` (sealed): `AutoPeriod` (default — tanggal hari ini), `AllPeriods` (Semua Periode), `SpecificPeriod(SalaryPeriod period)`.
+  - `selectedPeriodProvider : StateProvider<PeriodSelection>` (default `AutoPeriod`).
+  - `effectivePeriodProvider : FutureProvider<SalaryPeriod?>` (resolusi pilihan → period nyata; null = tanpa filter).
+  - `dashboardSummaryProvider` membaca `effectivePeriodProvider` lalu mengirim `period?.id`.
 
-> **Penjelasan (belajar):** Stub diganti panggilan API asli. Perhatikan pola `queryParameters: { if (id != null) 'salary_period_id': id }` — collection-`if` Dart menambah key hanya bila id tidak null, jadi saat "Semua Periode" tidak ada param dikirim. Inti pelajaran ada di state: `dashboardSummaryProvider` melakukan `ref.watch(selectedPeriodProvider)`. Karena `watch`, setiap kali nilai itu berubah, FutureProvider ini otomatis dijalankan ulang (refetch) — reaktivitas Riverpod, tanpa refresh manual.
+> **Penjelasan (belajar):** Datasource/repo/service di Step 1–3 sama seperti sebelumnya (stub → API asli; pola `queryParameters: { if (id != null) 'salary_period_id': id }`). Yang baru ada di Step 4 (state). Karena **default period = tanggal hari ini** dan daftar period itu async, satu `SalaryPeriod?` tidak cukup (hanya 2 keadaan), jadi kita pakai `sealed class PeriodSelection` (auto/all/specific — pola sama seperti `AuthState`). `effectivePeriodProvider` me-resolusi pilihan: `AutoPeriod` menunggu `salaryPeriodsProvider` lalu mencari period yang memuat hari ini, `AllPeriods` → null, `SpecificPeriod` → period itu. `dashboardSummaryProvider` `await ref.watch(effectivePeriodProvider.future)`, jadi ganti pilihan → refetch otomatis.
 
 - [ ] **Step 1: Update data source ke API asli**
 
@@ -360,7 +362,7 @@ final dashboardServiceProvider = Provider<DashboardService>(
 );
 ```
 
-- [ ] **Step 4: Tambah state period terpilih + sambungkan summary provider**
+- [ ] **Step 4: Tambah `PeriodSelection`, `effectivePeriodProvider`, dan sambungkan summary**
 
 Ganti SELURUH isi `lib/features/dashboard/presentation/states/dashboard_state.dart` dengan:
 ```dart
@@ -368,16 +370,72 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:pixel_pocket/features/dashboard/application/services/dashboard_service.dart';
 import 'package:pixel_pocket/features/dashboard/domain/models/transaction_summary.dart';
 import 'package:pixel_pocket/features/salary_period/domain/models/salary_period.dart';
+import 'package:pixel_pocket/features/salary_period/presentation/states/salary_period_state.dart';
 
-/// Currently selected salary period. `null` = "Semua Periode" (no filter).
-/// Mutating this re-runs [dashboardSummaryProvider].
-final selectedPeriodProvider = StateProvider<SalaryPeriod?>((ref) => null);
+/// Cara period dashboard dipilih (pola sama seperti AuthState).
+/// - [AutoPeriod]     : default — pakai period yang memuat tanggal hari ini.
+/// - [AllPeriods]     : "Semua Periode" (tanpa filter).
+/// - [SpecificPeriod] : period yang dipilih user.
+sealed class PeriodSelection {
+  const PeriodSelection();
+}
 
-/// Dashboard summary, filtered by the selected period.
-final dashboardSummaryProvider = FutureProvider<TransactionSummary>((ref) {
-  final period = ref.watch(selectedPeriodProvider);
+class AutoPeriod extends PeriodSelection {
+  const AutoPeriod();
+}
+
+class AllPeriods extends PeriodSelection {
+  const AllPeriods();
+}
+
+class SpecificPeriod extends PeriodSelection {
+  const SpecificPeriod(this.period);
+  final SalaryPeriod period;
+}
+
+/// Pilihan period saat ini. Default [AutoPeriod] → ditentukan tanggal hari ini.
+/// Mengubah ini me-refetch [dashboardSummaryProvider].
+final selectedPeriodProvider =
+    StateProvider<PeriodSelection>((ref) => const AutoPeriod());
+
+/// Period efektif hasil resolusi pilihan + daftar period.
+/// null = tanpa filter (Semua Periode, atau auto tapi tak ada period hari ini).
+final effectivePeriodProvider = FutureProvider<SalaryPeriod?>((ref) async {
+  final selection = ref.watch(selectedPeriodProvider);
+  switch (selection) {
+    case AllPeriods():
+      return null;
+    case SpecificPeriod(:final period):
+      return period;
+    case AutoPeriod():
+      final periods = await ref.watch(salaryPeriodsProvider.future);
+      return _periodForToday(periods, _todayFloor());
+  }
+});
+
+/// Dashboard summary, difilter oleh period efektif.
+final dashboardSummaryProvider =
+    FutureProvider<TransactionSummary>((ref) async {
+  final period = await ref.watch(effectivePeriodProvider.future);
   return ref.watch(dashboardServiceProvider).summary(period?.id);
 });
+
+/// Tanggal hari ini tanpa komponen jam (untuk perbandingan inklusif).
+DateTime _todayFloor() {
+  final now = DateTime.now();
+  return DateTime(now.year, now.month, now.day);
+}
+
+/// Period pertama yang rentang [startDate, endDate]-nya memuat [today]
+/// (inklusif), atau null bila tidak ada.
+SalaryPeriod? _periodForToday(List<SalaryPeriod> periods, DateTime today) {
+  for (final p in periods) {
+    final start = DateTime.parse(p.startDate);
+    final end = DateTime.parse(p.endDate);
+    if (!today.isBefore(start) && !today.isAfter(end)) return p;
+  }
+  return null;
+}
 ```
 
 - [ ] **Step 5: Analyze + commit**
@@ -397,9 +455,9 @@ Expected: analyze tidak menambah issue. (Dashboard kini memanggil API asli saat 
 - Modify: `lib/features/dashboard/presentation/screens/widgets/period_filter_card.dart`
 
 **Interfaces:**
-- Consumes: `selectedPeriodProvider` (Task 3), `salaryPeriodsProvider` (Task 2), `SalaryPeriod` (Task 1); tema yang ada (`AppColors`, `AppSpacing`, `AppTextStyles`).
+- Consumes: `effectivePeriodProvider`, `selectedPeriodProvider`, `PeriodSelection`/`AllPeriods`/`SpecificPeriod` (Task 3), `salaryPeriodsProvider` (Task 2), `SalaryPeriod` (Task 1); tema (`AppColors`, `AppSpacing`, `AppTextStyles`).
 
-> **Penjelasan (belajar):** Widget berubah dari `StatelessWidget` ke `ConsumerWidget` agar bisa `ref.watch`/`ref.read`. Card menampilkan label dari `selectedPeriodProvider` (read-path). Saat diketuk, buka `showModalBottomSheet`; isinya `ConsumerWidget` terpisah (`_PeriodPickerSheet`) yang `ref.watch(salaryPeriodsProvider)` lalu `.when(...)` — pola standar data async: spinner saat loading, pesan + tombol "Coba Lagi" saat error (retry = `ref.invalidate(salaryPeriodsProvider)`), dan daftar saat sukses. Memilih item = set `selectedPeriodProvider` lalu tutup sheet.
+> **Penjelasan (belajar):** Card menampilkan label dari `effectivePeriodProvider` (bukan langsung `selectedPeriodProvider`) karena mode auto perlu meresolusi "period hari ini" dulu — pakai `.maybeWhen(data: …, orElse: '…')` agar saat loading tampil `…`. Sheet menjadi `ConsumerStatefulWidget` supaya bisa menyimpan **filter tahun** (state UI lokal): `_selectedYear` default `DateTime.now().year`. Tahun diambil dari `startDate` tiap period — filtering **client-side** atas list yang sudah dimuat, tanpa request baru. Memilih item men-set `selectedPeriodProvider` ke `AllPeriods()` atau `SpecificPeriod(period)`.
 
 - [ ] **Step 1: Ganti widget dengan versi interaktif**
 
@@ -414,18 +472,20 @@ import 'package:pixel_pocket/features/dashboard/presentation/states/dashboard_st
 import 'package:pixel_pocket/features/salary_period/domain/models/salary_period.dart';
 import 'package:pixel_pocket/features/salary_period/presentation/states/salary_period_state.dart';
 
-/// Shows the currently selected period and opens a picker on tap. Selecting a
-/// period updates [selectedPeriodProvider], which re-runs the summary.
+/// Shows the effective period and opens a picker on tap. Selecting a period
+/// updates [selectedPeriodProvider], which re-runs the summary.
 class PeriodFilterCard extends ConsumerWidget {
   const PeriodFilterCard({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final selected = ref.watch(selectedPeriodProvider);
-    final label = selected?.name ?? 'Semua Periode';
+    final label = ref.watch(effectivePeriodProvider).maybeWhen(
+          data: (p) => p?.name ?? 'Semua Periode',
+          orElse: () => '…',
+        );
 
     return InkWell(
-      onTap: () => _openPicker(context, ref),
+      onTap: () => _openPicker(context),
       child: Container(
         decoration: BoxDecoration(
           color: AppColors.surface,
@@ -459,7 +519,7 @@ class PeriodFilterCard extends ConsumerWidget {
     );
   }
 
-  void _openPicker(BuildContext context, WidgetRef ref) {
+  void _openPicker(BuildContext context) {
     showModalBottomSheet<void>(
       context: context,
       backgroundColor: AppColors.surface,
@@ -468,12 +528,22 @@ class PeriodFilterCard extends ConsumerWidget {
   }
 }
 
-/// Bottom-sheet content: "Semua Periode" + the list of salary periods.
-class _PeriodPickerSheet extends ConsumerWidget {
+/// Bottom-sheet: filter tahun (client-side, default tahun sekarang) +
+/// "Semua Periode" + daftar period pada tahun terpilih.
+class _PeriodPickerSheet extends ConsumerStatefulWidget {
   const _PeriodPickerSheet();
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<_PeriodPickerSheet> createState() => _PeriodPickerSheetState();
+}
+
+class _PeriodPickerSheetState extends ConsumerState<_PeriodPickerSheet> {
+  int _selectedYear = DateTime.now().year;
+
+  int _yearOf(SalaryPeriod p) => DateTime.parse(p.startDate).year;
+
+  @override
+  Widget build(BuildContext context) {
     final periodsAsync = ref.watch(salaryPeriodsProvider);
 
     return SafeArea(
@@ -498,27 +568,75 @@ class _PeriodPickerSheet extends ConsumerWidget {
               ],
             ),
           ),
-          data: (periods) => ListView(
-            shrinkWrap: true,
-            children: [
-              ListTile(
-                title: const Text('Semua Periode'),
-                onTap: () {
-                  ref.read(selectedPeriodProvider.notifier).state = null;
-                  Navigator.of(context).pop();
-                },
-              ),
-              for (final period in periods)
-                ListTile(
-                  title: Text(period.name),
-                  subtitle: Text('${period.startDate} → ${period.endDate}'),
-                  onTap: () {
-                    ref.read(selectedPeriodProvider.notifier).state = period;
-                    Navigator.of(context).pop();
-                  },
+          data: (periods) {
+            // Tahun unik dari semua period (terbaru dulu).
+            final years = periods.map(_yearOf).toSet().toList()
+              ..sort((a, b) => b.compareTo(a));
+            // Filter client-side: hanya period di tahun terpilih.
+            final filtered =
+                periods.where((p) => _yearOf(p) == _selectedYear).toList();
+
+            return Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                if (years.isNotEmpty)
+                  SingleChildScrollView(
+                    scrollDirection: Axis.horizontal,
+                    padding: AppSpacing.card,
+                    child: Row(
+                      children: [
+                        for (final year in years)
+                          Padding(
+                            padding:
+                                const EdgeInsets.only(right: AppSpacing.s4),
+                            child: ChoiceChip(
+                              label: Text('$year'),
+                              selected: year == _selectedYear,
+                              onSelected: (_) =>
+                                  setState(() => _selectedYear = year),
+                            ),
+                          ),
+                      ],
+                    ),
+                  ),
+                Flexible(
+                  child: ListView(
+                    shrinkWrap: true,
+                    children: [
+                      ListTile(
+                        title: const Text('Semua Periode'),
+                        onTap: () {
+                          ref.read(selectedPeriodProvider.notifier).state =
+                              const AllPeriods();
+                          Navigator.of(context).pop();
+                        },
+                      ),
+                      for (final period in filtered)
+                        ListTile(
+                          title: Text(period.name),
+                          subtitle:
+                              Text('${period.startDate} → ${period.endDate}'),
+                          onTap: () {
+                            ref.read(selectedPeriodProvider.notifier).state =
+                                SpecificPeriod(period);
+                            Navigator.of(context).pop();
+                          },
+                        ),
+                      if (filtered.isEmpty)
+                        Padding(
+                          padding: const EdgeInsets.all(AppSpacing.s24),
+                          child: Text(
+                            'Tidak ada periode untuk tahun $_selectedYear',
+                            style: const TextStyle(color: AppColors.textMuted),
+                          ),
+                        ),
+                    ],
+                  ),
                 ),
-            ],
-          ),
+              ],
+            );
+          },
         ),
       ),
     );
@@ -540,10 +658,11 @@ Expected: analyze tidak menambah issue; smoke test yang ada tetap lulus.
 
 Run: `flutter run` (dengan akun Google sudah login agar interceptor melampirkan token).
 Cek:
-1. Dashboard menampilkan summary card (kini dari `/api/summary` asli).
-2. Mengetuk card PERIOD membuka bottom sheet berisi "Semua Periode" + daftar salary period Anda.
-3. Memilih satu period menutup sheet, label card berubah jadi nama period itu, dan angka summary refetch untuk period tersebut.
-4. Memilih "Semua Periode" mereset filter.
+1. Saat dibuka, label PERIOD otomatis menampilkan **period yang memuat tanggal hari ini** (atau "Semua Periode" bila tidak ada yang cocok), dan summary sudah terfilter untuk period itu.
+2. Mengetuk card PERIOD membuka bottom sheet: ada **chip tahun** dengan **tahun sekarang aktif**, di bawahnya "Semua Periode" + daftar period **tahun itu saja**.
+3. Mengganti chip tahun mengubah daftar period (client-side, tanpa loading ulang).
+4. Memilih satu period menutup sheet, label card berubah jadi nama period itu, dan angka summary refetch.
+5. Memilih "Semua Periode" mereset filter (tanpa `salary_period_id`).
 
 > Bila API error (mis. belum login), `summaryAsync.when(error: ...)` di dashboard menampilkan teks error — itu wajar.
 
