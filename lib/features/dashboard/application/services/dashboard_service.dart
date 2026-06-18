@@ -8,7 +8,8 @@ class DashboardService {
 
   final DashboardRepository _repo;
 
-  Future<TransactionSummary> summary() => _repo.getSummary();
+  Future<TransactionSummary> summary(int? periodId) =>
+      _repo.getSummary(periodId);
 }
 
 final dashboardServiceProvider = Provider<DashboardService>(
