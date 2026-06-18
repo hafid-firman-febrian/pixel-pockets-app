@@ -2,14 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
+import 'package:pixel_pocket/core/error/failure.dart';
 import 'package:pixel_pocket/core/theme/app_color.dart';
 import 'package:pixel_pocket/core/theme/app_spacing.dart';
-
-import '../../../../core/error/failure.dart';
 import 'package:pixel_pocket/features/categories/domain/models/category_model.dart';
 import 'package:pixel_pocket/features/categories/presentation/states/category_state.dart';
-import '../../models/transaction_model.dart';
-import '../../providers/transaction_provider.dart';
+import 'package:pixel_pocket/features/transactions/domain/models/transaction_model.dart';
+import 'package:pixel_pocket/features/transactions/presentation/controllers/transaction_controller.dart';
 
 /// Bottom-sheet form for creating or editing a transaction.
 ///

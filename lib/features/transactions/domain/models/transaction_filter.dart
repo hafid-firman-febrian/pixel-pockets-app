@@ -1,10 +1,5 @@
-/// Immutable filter state for the transactions list.
-///
-/// Maps to the query params accepted by `/api/transactions`:
-/// - [salaryPeriodId] has the highest priority on the server.
-/// - [filter] is one of `week` | `month` | `year` | `custom`.
-/// - [startDate] + [endDate] are required when `filter == custom`.
-/// - [transactionType] is `income` | `expense` (null = both).
+/// Immutable filter criteria for the transactions list. Pure domain — the
+/// data source translates this into query parameters.
 class TransactionFilter {
   final int? salaryPeriodId;
   final String? filter; // week | month | year | custom
@@ -48,19 +43,6 @@ class TransactionFilter {
       page: page ?? this.page,
       limit: limit ?? this.limit,
     );
-  }
-
-  /// Builds the query-parameter map, omitting nulls.
-  Map<String, dynamic> toQueryParameters() {
-    return {
-      if (salaryPeriodId != null) 'salary_period_id': salaryPeriodId,
-      if (filter != null) 'filter': filter,
-      if (startDate != null) 'start_date': startDate,
-      if (endDate != null) 'end_date': endDate,
-      if (transactionType != null) 'transaction_type': transactionType,
-      'page': page,
-      'limit': limit,
-    };
   }
 
   @override

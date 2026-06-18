@@ -3,7 +3,7 @@ import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 
-import '../../transactions/providers/transaction_provider.dart';
+import 'package:pixel_pocket/features/transactions/presentation/states/transaction_state.dart';
 import '../repositories/auth_repository.dart';
 
 /// Authentication state. [AuthUnknown] is the launch state — the router keeps

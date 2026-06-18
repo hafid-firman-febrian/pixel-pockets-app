@@ -1,8 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:pixel_pocket/core/theme/app_spacing.dart';
-
-import '../../providers/transaction_provider.dart';
+import 'package:pixel_pocket/features/transactions/presentation/states/transaction_state.dart';
 
 /// Segmented "All / Income / Expense" filter. Reads and updates the shared
 /// [transactionFilterProvider]; the list re-fetches automatically.

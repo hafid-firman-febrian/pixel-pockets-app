@@ -1,9 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:pixel_pocket/core/theme/app_color.dart';
 import 'package:pixel_pocket/core/theme/app_spacing.dart';
-
-import '../../../../core/utils/currency_formatter.dart';
-import '../../models/transaction_model.dart';
+import 'package:pixel_pocket/core/utils/currency_formatter.dart';
+import 'package:pixel_pocket/features/transactions/domain/models/transaction_model.dart';
 
 /// One row in the transaction list. Pure presentation — all data comes in
 /// via [transaction]; taps/dismiss are delegated to the parent.
