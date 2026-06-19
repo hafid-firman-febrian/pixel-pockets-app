@@ -54,7 +54,6 @@ class _TransactionFormSheetState extends ConsumerState<TransactionFormSheet> {
   late String _type; // income | expense
   late DateTime _date;
   int? _categoryId;
-  bool _submitting = false;
 
   @override
   void initState() {
@@ -108,34 +107,35 @@ class _TransactionFormSheetState extends ConsumerState<TransactionFormSheet> {
 
     final amount = double.parse(_amountController.text.trim());
     final description = _descriptionController.text.trim();
-    final controller = ref.read(transactionControllerProvider);
+    final controller = ref.read(transactionsControllerProvider.notifier);
 
-    setState(() => _submitting = true);
-    try {
-      if (widget.isEditing) {
-        await controller.update(
-          id: widget.existing!.id,
-          transactionDate: _dateFormat.format(_date),
-          transactionType: _type,
-          amount: amount,
-          categoryId: _categoryId,
-          description: description.isEmpty ? null : description,
-        );
-      } else {
-        await controller.create(
-          transactionDate: _dateFormat.format(_date),
-          transactionType: _type,
-          amount: amount,
-          categoryId: _categoryId,
-          description: description.isEmpty ? null : description,
-        );
-      }
-      if (mounted) Navigator.of(context).pop(true);
-    } on Failure catch (f) {
-      if (mounted) {
-        setState(() => _submitting = false);
-        _showSnack(f.message, isError: true);
-      }
+    // Loading drives the button via ref.watch(...).isLoading in build().
+    final ok = widget.isEditing
+        ? await controller.edit(
+            id: widget.existing!.id,
+            transactionDate: _dateFormat.format(_date),
+            transactionType: _type,
+            amount: amount,
+            categoryId: _categoryId,
+            description: description.isEmpty ? null : description,
+          )
+        : await controller.create(
+            transactionDate: _dateFormat.format(_date),
+            transactionType: _type,
+            amount: amount,
+            categoryId: _categoryId,
+            description: description.isEmpty ? null : description,
+          );
+
+    if (!mounted) return;
+    if (ok) {
+      Navigator.of(context).pop(true);
+    } else {
+      final error = ref.read(transactionsControllerProvider).error;
+      _showSnack(
+        error is Failure ? error.message : 'Gagal menyimpan transaksi',
+        isError: true,
+      );
     }
   }
 
@@ -151,6 +151,7 @@ class _TransactionFormSheetState extends ConsumerState<TransactionFormSheet> {
   @override
   Widget build(BuildContext context) {
     final categoriesAsync = ref.watch(categoriesProvider);
+    final isSubmitting = ref.watch(transactionsControllerProvider).isLoading;
     final viewInsets = MediaQuery.of(context).viewInsets.bottom;
 
     return Padding(
@@ -286,8 +287,8 @@ class _TransactionFormSheetState extends ConsumerState<TransactionFormSheet> {
               const SizedBox(height: AppSpacing.s24),
 
               ElevatedButton(
-                onPressed: _submitting ? null : _submit,
-                child: _submitting
+                onPressed: isSubmitting ? null : _submit,
+                child: isSubmitting
                     ? const SizedBox(
                         height: 20,
                         width: 20,
