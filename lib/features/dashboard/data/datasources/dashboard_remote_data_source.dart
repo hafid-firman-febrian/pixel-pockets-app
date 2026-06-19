@@ -13,7 +13,9 @@ class DashboardRemoteDataSource {
   Future<SummaryDto> getSummary(int? salaryPeriodId) async {
     final response = await _dio.get(
       ApiEndpoints.summary,
-      queryParameters: {'salary_period_id': ?salaryPeriodId},
+      queryParameters: {
+        if (salaryPeriodId != null) 'salary_period_id': salaryPeriodId,
+      },
     );
 
     return SummaryDto.fromJson(response.data['data'] as Map<String, dynamic>);
