@@ -22,9 +22,10 @@ final dioProvider = Provider<Dio>((ref) => ref.watch(apiClientProvider).dio);
 /// Owns the single configured [Dio] instance for the whole app.
 ///
 /// Base URL resolution:
-/// - In release builds it always points at production.
-/// - In debug builds it points at the local dev server, choosing the
-///   right host for the Android emulator vs. the iOS simulator.
+/// - Release builds always point at production.
+/// - Debug/profile builds also point at production for now, because there is
+///   no local dev server yet. Flip [_useLocalDevServer] to `true` once one is
+///   running to route debug builds to the per-platform local hosts.
 class ApiClient {
   ApiClient() : dio = Dio(_baseOptions()) {
     dio.interceptors.add(
@@ -53,13 +54,16 @@ class ApiClient {
     );
   }
 
-  static String _resolveBaseUrl() {
-    if (kReleaseMode) return ApiEndpoints.prodBaseUrl;
+  /// Set to `true` to route debug/profile builds at the local dev server.
+  /// Left `false` while the API only lives on Vercel (no local server yet).
+  static const bool _useLocalDevServer = false;
 
-    // Debug / profile: talk to the local dev server.
-    // Web has no Platform; fall back to localhost there.
+  static String _resolveBaseUrl() {
+    if (kReleaseMode || !_useLocalDevServer) return ApiEndpoints.prodBaseUrl;
+
+    // Local dev server: pick the right host. Web has no Platform → localhost.
     if (kIsWeb) return ApiEndpoints.iosDevBaseUrl;
-    if (Platform.isAndroid) return ApiEndpoints.prodBaseUrl;
+    if (Platform.isAndroid) return ApiEndpoints.androidDevBaseUrl;
     return ApiEndpoints.iosDevBaseUrl;
   }
 }
