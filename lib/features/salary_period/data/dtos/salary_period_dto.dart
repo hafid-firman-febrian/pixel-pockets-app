@@ -1,4 +1,4 @@
-import 'package:pixel_pocket/features/salary_period/domain/model/salary_period_model.dart';
+import 'package:pixel_pocket/features/salary_period/domain/models/salary_period_model.dart';
 
 class SalaryPeriodDto {
   final int id;
