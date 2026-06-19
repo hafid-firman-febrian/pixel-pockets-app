@@ -5,7 +5,7 @@ import 'package:pixel_pocket/core/theme/app_sizing.dart';
 import 'package:pixel_pocket/core/theme/app_spacing.dart';
 import 'package:pixel_pocket/core/theme/app_text_style.dart';
 import 'package:pixel_pocket/features/dashboard/presentation/states/dashboard_state.dart';
-import 'package:pixel_pocket/features/salary_period/domain/model/salary_period_model.dart';
+import 'package:pixel_pocket/features/salary_period/domain/models/salary_period_model.dart';
 import 'package:pixel_pocket/features/salary_period/presentation/states/salary_period_state.dart';
 import 'package:pixelarticons/pixelarticons.dart';
 import 'package:skeletonizer/skeletonizer.dart';
