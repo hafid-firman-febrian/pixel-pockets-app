@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:pixel_pocket/features/auth/application/services/auth_service.dart';
 import 'package:pixel_pocket/features/auth/domain/models/auth_user.dart';
@@ -40,19 +41,28 @@ class AuthController extends Notifier<AuthState> {
     }
   }
 
+  /// THE single writer of the runtime auth state. Driven by the SDK's
+  /// authentication event stream so sign-in/out always reflect the SDK's own
+  /// causal order — no imperative write from [login]/[logout] can race a
+  /// late-delivered event and bounce the user back to the login screen.
   void _onUserChanged(AuthUser? user) {
+    debugPrint('[AUTH] stream event => ${user != null ? "SignedIn(${user.email})" : "SignedOut"}');
     state = user != null ? AuthSignedIn(user) : const AuthSignedOut();
   }
 
+  /// Triggers interactive sign-in. State is NOT set here — the resulting
+  /// SignIn event flows through [_onUserChanged]. (Cancel → null → no event,
+  /// state stays signed-out.)
   Future<void> login() async {
-    final user = await _service.signIn();
-    // user == null → user batal: biarkan tetap signed-out, bukan error.
-    if (user != null) state = AuthSignedIn(user);
+    debugPrint('[AUTH] login() trigger');
+    await _service.signIn();
   }
 
+  /// Triggers sign-out. State is NOT set here — the SignOut event flows through
+  /// [_onUserChanged].
   Future<void> logout() async {
+    debugPrint('[AUTH] logout() trigger');
     await _service.signOut();
-    state = const AuthSignedOut();
     ref.invalidate(
       transactionsControllerProvider,
     ); // drop the previous user's data
