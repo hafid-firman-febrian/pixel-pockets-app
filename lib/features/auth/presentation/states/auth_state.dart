@@ -1,4 +1,4 @@
-import 'package:google_sign_in/google_sign_in.dart';
+import 'package:pixel_pocket/features/auth/domain/models/auth_user.dart';
 
 /// Authentication state. [AuthUnknown] is the launch state — the router keeps
 /// the user on the splash screen until it resolves, avoiding a flicker to the
@@ -16,6 +16,6 @@ class AuthSignedOut extends AuthState {
 }
 
 class AuthSignedIn extends AuthState {
-  const AuthSignedIn(this.account);
-  final GoogleSignInAccount account;
+  const AuthSignedIn(this.user);
+  final AuthUser user;
 }

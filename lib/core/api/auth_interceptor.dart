@@ -20,11 +20,11 @@ class AuthInterceptor extends Interceptor {
   void onRequest(RequestOptions options, RequestInterceptorHandler handler) {
     final auth = _ref.read(authControllerProvider);
     if (auth is AuthSignedIn) {
-      final token = auth.account.authentication.idToken;
+      final token = auth.user.idToken;
 
       if (token != null) {
         // TODO Hapus Jika sudah selesai testing
-        print('${auth.account.authentication.idToken}');
+        print(token);
         Clipboard.setData(ClipboardData(text: token));
         print('TOKEN length=${token.length} (sudah disalin ke clipboard)');
         options.headers['Authorization'] = 'Bearer $token';

@@ -4,6 +4,7 @@ import 'package:pixel_pocket/core/theme/app_spacing.dart';
 import 'package:pixel_pocket/core/theme/app_text_style.dart';
 import 'package:pixel_pocket/core/utils/currency_formatter.dart';
 import 'package:pixel_pocket/features/dashboard/domain/models/transaction_summary.dart';
+import 'package:skeletonizer/skeletonizer.dart';
 
 class TransactionSummaryCard extends StatelessWidget {
   const TransactionSummaryCard({super.key, required this.summary});
@@ -35,10 +36,12 @@ class TransactionSummaryCard extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    'BALANCE',
-                    style: AppTextStyles.bodyNormal.copyWith(
-                      color: AppColors.textSecondary,
+                  Skeleton.keep(
+                    child: Text(
+                      'BALANCE',
+                      style: AppTextStyles.bodyNormal.copyWith(
+                        color: AppColors.textSecondary,
+                      ),
                     ),
                   ),
                   SizedBox(height: AppSpacing.item),
@@ -64,7 +67,7 @@ class TransactionSummaryCard extends StatelessWidget {
                     ),
                   ),
                   SizedBox(height: AppSpacing.section),
-                  Divider(color: AppColors.border),
+                  Skeleton.keep(child: Divider(color: AppColors.border)),
                   SizedBox(height: AppSpacing.section),
 
                   Row(
@@ -80,7 +83,9 @@ class TransactionSummaryCard extends StatelessWidget {
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     crossAxisAlignment: CrossAxisAlignment.end,
                     children: [
-                      Text('SPENT', style: AppTextStyles.overlineSm),
+                      Skeleton.keep(
+                        child: Text('SPENT', style: AppTextStyles.overlineSm),
+                      ),
                       Text(
                         summary.spentPercentageString,
                         style: AppTextStyles.overlineLg.copyWith(
@@ -91,29 +96,50 @@ class TransactionSummaryCard extends StatelessWidget {
                   ),
                   SizedBox(height: AppSpacing.s4),
 
-                  LayoutBuilder(
-                    builder: (context, constraints) {
-                      final percentage = summary.spentPercentage.clamp(
-                        0.0,
-                        1.0,
-                      );
-                      final spentWidth = constraints.maxWidth * percentage;
-
-                      return Container(
-                        width: double.infinity,
-                        height: 5,
-                        decoration: BoxDecoration(color: AppColors.border),
-                        child: Align(
-                          alignment: Alignment.centerLeft,
+                  // ✅ Tidak perlu LayoutBuilder sama sekali
+                  SizedBox(
+                    width: double.infinity,
+                    height: 5,
+                    child: Stack(
+                      children: [
+                        // track background
+                        Container(
+                          decoration: BoxDecoration(color: AppColors.border),
+                        ),
+                        // filled bar
+                        FractionallySizedBox(
+                          // alignment: Alignment.centerLeft, // ← mulai dari kiri
+                          widthFactor: summary.spentPercentage.clamp(0.0, 1.0),
                           child: Container(
-                            width: spentWidth,
-                            height: 10,
                             decoration: BoxDecoration(color: AppColors.expense),
                           ),
                         ),
-                      );
-                    },
+                      ],
+                    ),
                   ),
+                  // LayoutBuilder(
+                  //   builder: (context, constraints) {
+                  //     final percentage = summary.spentPercentage.clamp(
+                  //       0.0,
+                  //       1.0,
+                  //     );
+                  //     final spentWidth = constraints.maxWidth * percentage;
+
+                  //     return Container(
+                  //       width: double.infinity,
+                  //       height: 5,
+                  //       decoration: BoxDecoration(color: AppColors.border),
+                  //       child: Align(
+                  //         alignment: Alignment.centerRight,
+                  //         child: Container(
+                  //           width: spentWidth,
+                  //           height: 10,
+                  //           decoration: BoxDecoration(color: AppColors.expense),
+                  //         ),
+                  //       ),
+                  //     );
+                  //   },
+                  // ),
                 ],
               ),
             ),
@@ -125,10 +151,7 @@ class TransactionSummaryCard extends StatelessWidget {
 }
 
 class _TotalTransaction extends StatelessWidget {
-  const _TotalTransaction({
-    required this.summary,
-    required this.isIncome,
-  });
+  const _TotalTransaction({required this.summary, required this.isIncome});
 
   final TransactionSummary summary;
   final bool isIncome;
@@ -138,21 +161,23 @@ class _TotalTransaction extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Row(
-          children: [
-            Container(
-              width: 10,
-              height: 10,
-              decoration: BoxDecoration(
-                color: isIncome ? AppColors.income : AppColors.expense,
+        Skeleton.keep(
+          child: Row(
+            children: [
+              Container(
+                width: 10,
+                height: 10,
+                decoration: BoxDecoration(
+                  color: isIncome ? AppColors.income : AppColors.expense,
+                ),
               ),
-            ),
-            SizedBox(width: AppSpacing.s4),
-            Text(
-              isIncome ? 'INCOME' : 'EXPENSE',
-              style: AppTextStyles.overlineSm,
-            ),
-          ],
+              SizedBox(width: AppSpacing.s4),
+              Text(
+                isIncome ? 'INCOME' : 'EXPENSE',
+                style: AppTextStyles.overlineSm,
+              ),
+            ],
+          ),
         ),
         SizedBox(height: AppSpacing.s4),
         Text(
