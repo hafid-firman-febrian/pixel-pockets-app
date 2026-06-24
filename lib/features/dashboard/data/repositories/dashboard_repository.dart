@@ -1,4 +1,6 @@
+import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:pixel_pocket/core/error/failure.dart';
 import 'package:pixel_pocket/features/dashboard/data/datasources/dashboard_remote_data_source.dart';
 import 'package:pixel_pocket/features/dashboard/domain/models/transaction_summary.dart';
 
@@ -8,9 +10,13 @@ class DashboardRepository {
 
   final DashboardRemoteDataSource _remote;
 
-  Future<TransactionSummary> getSummary() async {
-    final dto = await _remote.getSummary();
-    return dto.toDomain();
+  Future<TransactionSummary> getSummary(int? periodId) async {
+    try {
+      final dto = await _remote.getSummary(periodId);
+      return dto.toDomain();
+    } on DioException catch (e) {
+      throw Failure.fromDio(e);
+    }
   }
 }
 

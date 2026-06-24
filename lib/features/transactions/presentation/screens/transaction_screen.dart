@@ -11,7 +11,6 @@ import 'package:pixel_pocket/features/transactions/presentation/controllers/tran
 import 'package:pixel_pocket/features/transactions/presentation/screens/widgets/transaction_form_sheet.dart';
 import 'package:pixel_pocket/features/transactions/presentation/screens/widgets/transaction_list_item.dart';
 import 'package:pixel_pocket/features/transactions/presentation/screens/widgets/transaction_type_filter.dart';
-import 'package:pixel_pocket/features/transactions/presentation/states/transaction_state.dart';
 import 'package:pixelarticons/pixel.dart';
 
 /// Transactions list. UI only: it watches providers and delegates every
@@ -21,7 +20,7 @@ class TransactionScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final transactionsAsync = ref.watch(transactionsProvider);
+    final transactionsAsync = ref.watch(transactionsControllerProvider);
 
     return SafeArea(
       child: Scaffold(
@@ -49,53 +48,56 @@ class TransactionScreen extends ConsumerWidget {
               ),
               const TransactionTypeFilter(),
               Expanded(
-                child: transactionsAsync.when(
-                  loading: () =>
-                      const Center(child: CircularProgressIndicator()),
-                  error: (e, _) {
-                    final failure = e is Failure ? e : null;
-                    return _ErrorView(
-                      message: failure?.message ?? e.toString(),
-                      type: failure?.type ?? FailureType.unknown,
-                      onRetry: () => ref.invalidate(transactionsProvider),
-                    );
-                  },
-                  data: (transactions) {
-                    if (transactions.isEmpty) {
-                      return const _EmptyView();
-                    }
-                    return RefreshIndicator(
-                      onRefresh: () => ref.refresh(transactionsProvider.future),
-                      child: ListView.separated(
-                        padding: const EdgeInsets.only(bottom: 96),
-                        itemCount: transactions.length,
-                        separatorBuilder: (_, _) =>
-                            const Divider(indent: 72, height: 1),
-                        itemBuilder: (context, index) {
-                          final tx = transactions[index];
-                          return Dismissible(
-                            key: ValueKey(tx.id),
-                            direction: DismissDirection.endToStart,
-                            background: _deleteBackground(),
-                            confirmDismiss: (_) => _confirmDelete(context),
-                            onDismissed: (_) => _delete(context, ref, tx),
-                            child: TransactionListItem(
-                              transaction: tx,
-                              onTap: () => TransactionFormSheet.show(
-                                context,
-                                existing: tx,
-                              ),
-                            ),
-                          );
-                        },
-                      ),
-                    );
-                  },
-                ),
+                // Prefer showing data whenever we have it: an in-flight or
+                // failed mutation keeps the list visible (previous value is
+                // retained), so the list never blanks. Mutation errors are
+                // surfaced as snackbars by the action handlers, not here.
+                child: switch (transactionsAsync) {
+                  AsyncValue(:final value?) => _buildList(context, ref, value),
+                  AsyncValue(:final error?) => _ErrorView(
+                    message: error is Failure ? error.message : error.toString(),
+                    type: error is Failure ? error.type : FailureType.unknown,
+                    onRetry: () =>
+                        ref.invalidate(transactionsControllerProvider),
+                  ),
+                  _ => const Center(child: CircularProgressIndicator()),
+                },
               ),
             ],
           ),
         ),
+      ),
+    );
+  }
+
+  Widget _buildList(
+    BuildContext context,
+    WidgetRef ref,
+    List<TransactionModel> transactions,
+  ) {
+    if (transactions.isEmpty) {
+      return const _EmptyView();
+    }
+    return RefreshIndicator(
+      onRefresh: () => ref.refresh(transactionsControllerProvider.future),
+      child: ListView.separated(
+        padding: const EdgeInsets.only(bottom: 96),
+        itemCount: transactions.length,
+        separatorBuilder: (_, _) => const Divider(indent: 72, height: 1),
+        itemBuilder: (context, index) {
+          final tx = transactions[index];
+          return Dismissible(
+            key: ValueKey(tx.id),
+            direction: DismissDirection.endToStart,
+            background: _deleteBackground(),
+            confirmDismiss: (_) => _confirmDelete(context),
+            onDismissed: (_) => _delete(context, ref, tx),
+            child: TransactionListItem(
+              transaction: tx,
+              onTap: () => TransactionFormSheet.show(context, existing: tx),
+            ),
+          );
+        },
       ),
     );
   }
@@ -136,17 +138,23 @@ class TransactionScreen extends ConsumerWidget {
     TransactionModel tx,
   ) async {
     final messenger = ScaffoldMessenger.of(context);
-    try {
-      await ref.read(transactionControllerProvider).delete(tx.id);
+    final ok = await ref
+        .read(transactionsControllerProvider.notifier)
+        .delete(tx.id);
+    if (ok) {
       messenger.showSnackBar(
         const SnackBar(content: Text('Transaksi dihapus')),
       );
-    } on Failure catch (f) {
-      messenger.showSnackBar(
-        SnackBar(content: Text(f.message), backgroundColor: AppColors.expense),
-      );
-      ref.invalidate(transactionsProvider); // restore the row
+      return;
     }
+
+    final error = ref.read(transactionsControllerProvider).error;
+    final message = error is Failure ? error.message : 'Gagal menghapus';
+    messenger.showSnackBar(
+      SnackBar(content: Text(message), backgroundColor: AppColors.expense),
+    );
+    // Failed delete: refetch so the optimistically-dismissed row returns.
+    ref.invalidate(transactionsControllerProvider);
   }
 }
 
