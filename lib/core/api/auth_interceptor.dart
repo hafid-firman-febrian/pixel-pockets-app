@@ -36,7 +36,8 @@ class AuthInterceptor extends Interceptor {
     final status = err.response?.statusCode;
     final alreadyRetried = err.requestOptions.extra[_retriedKey] == true;
 
-    // 403 = email not allowed → surface to UI, never refresh.
+    // Only refresh on 401 (once). All other statuses — including 403
+    // (email not allowed) — pass straight through to the UI.
     if (status == 401 && !alreadyRetried) {
       try {
         final newToken = await _gateway.refresh();
