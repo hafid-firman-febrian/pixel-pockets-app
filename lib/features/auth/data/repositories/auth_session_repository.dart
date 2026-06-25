@@ -1,4 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:pixel_pocket/core/api/auth_interceptor.dart';
 import 'package:pixel_pocket/core/error/failure.dart';
 import 'package:pixel_pocket/features/auth/data/datasources/auth_api.dart';
 import 'package:pixel_pocket/features/auth/data/datasources/token_local_data_source.dart';
@@ -6,7 +7,7 @@ import 'package:pixel_pocket/features/auth/data/datasources/token_local_data_sou
 /// Owns the backend session: exchanges the Google ID token for backend tokens,
 /// refreshes them (single-flight), and clears them on logout. Token rotation is
 /// handled here — every refresh persists the new access+refresh pair.
-class AuthSessionRepository {
+class AuthSessionRepository implements SessionGateway {
   AuthSessionRepository(this._api, this._store);
 
   final AuthApi _api;
@@ -20,8 +21,10 @@ class AuthSessionRepository {
     await _store.save(accessToken: s.accessToken, refreshToken: s.refreshToken, userName: s.name);
   }
 
+  @override
   Future<String?> currentAccessToken() => _store.readAccessToken();
 
+  @override
   Future<String> refresh() {
     return _refreshing ??= _doRefresh().whenComplete(() => _refreshing = null);
   }
@@ -36,6 +39,7 @@ class AuthSessionRepository {
     return s.accessToken;
   }
 
+  @override
   Future<void> logout() async {
     final rt = await _store.readRefreshToken();
     if (rt != null) {
