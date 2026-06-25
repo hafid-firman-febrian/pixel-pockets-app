@@ -4,7 +4,8 @@ import 'package:pixel_pocket/features/auth/data/datasources/token_local_data_sou
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
-  FlutterSecureStorage.setMockInitialValues({});
+
+  setUp(() => FlutterSecureStorage.setMockInitialValues({}));
 
   test('save then read returns the stored tokens', () async {
     final ds = TokenLocalDataSource();
@@ -20,5 +21,6 @@ void main() {
     await ds.clear();
     expect(await ds.readAccessToken(), isNull);
     expect(await ds.readRefreshToken(), isNull);
+    expect(await ds.readUserName(), isNull);
   });
 }
