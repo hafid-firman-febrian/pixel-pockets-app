@@ -21,7 +21,7 @@ class TokenLocalDataSource {
   }) async {
     await _storage.write(key: _accessKey, value: accessToken);
     await _storage.write(key: _refreshKey, value: refreshToken);
-    if (userName != null && userName.isNotEmpty) {
+    if (userName != null) {
       await _storage.write(key: _userNameKey, value: userName);
     }
   }
