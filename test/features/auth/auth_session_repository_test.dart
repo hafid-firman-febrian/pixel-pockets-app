@@ -1,4 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:pixel_pocket/core/error/failure.dart';
 import 'package:pixel_pocket/features/auth/data/datasources/auth_api.dart';
 import 'package:pixel_pocket/features/auth/data/datasources/token_local_data_source.dart';
 import 'package:pixel_pocket/features/auth/data/dtos/auth_session_dto.dart';
@@ -37,6 +38,11 @@ class _FakeStore implements TokenLocalDataSource {
   Future<void> clear() async { access = refresh = userName = null; }
 }
 
+class _ThrowingLogoutApi extends _FakeApi {
+  @override
+  Future<void> logout(String refreshToken) async => throw Exception('network down');
+}
+
 void main() {
   test('concurrent refresh() calls share a single in-flight API call', () async {
     final api = _FakeApi();
@@ -56,5 +62,24 @@ void main() {
     await repo.exchangeGoogle('gid');
     expect(store.access, 'a');
     expect(store.userName, 'n');
+  });
+
+  test('refresh() throws Failure(401) when no refresh token stored', () async {
+    final store = _FakeStore(); // refresh token is null
+    final repo = AuthSessionRepository(_FakeApi(), store);
+    expect(
+      () => repo.refresh(),
+      throwsA(isA<Failure>().having((f) => f.statusCode, 'statusCode', 401)),
+    );
+  });
+
+  test('logout() clears local storage even when the API call fails', () async {
+    final store = _FakeStore()
+      ..access = 'a'
+      ..refresh = 'r';
+    final repo = AuthSessionRepository(_ThrowingLogoutApi(), store);
+    await repo.logout();
+    expect(store.access, isNull);
+    expect(store.refresh, isNull);
   });
 }
