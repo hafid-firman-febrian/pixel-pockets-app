@@ -94,4 +94,16 @@ void main() {
     expect(gw.logoutCalls, 0);
     expect(capturedRetryResponse, isNotNull);
   });
+
+  test('401 → refresh succeeds but retry fails → error passes through, no logout', () async {
+    final gw = _FakeGateway('tok'); // refresh succeeds by default
+    final i = AuthInterceptor(
+      gw,
+      retry: (o) async => throw DioException(requestOptions: o), // retried request fails
+    );
+    i.onError(_err(401), _SinkErrorHandler());
+    await Future<void>.delayed(const Duration(milliseconds: 10));
+    expect(gw.refreshCalls, 1);
+    expect(gw.logoutCalls, 0); // a failed RETRY must not log the user out
+  });
 }

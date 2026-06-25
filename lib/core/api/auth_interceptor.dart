@@ -39,15 +39,24 @@ class AuthInterceptor extends Interceptor {
     // Only refresh on 401 (once). All other statuses — including 403
     // (email not allowed) — pass straight through to the UI.
     if (status == 401 && !alreadyRetried) {
+      final String newToken;
       try {
-        final newToken = await _gateway.refresh();
+        newToken = await _gateway.refresh();
+      } catch (_) {
+        // Genuine refresh failure → session expired → log out.
+        await _gateway.logout();
+        return handler.next(err);
+      }
+      try {
         final options = err.requestOptions
           ..extra[_retriedKey] = true
           ..headers['Authorization'] = 'Bearer $newToken';
         final response = await retry(options);
         return handler.resolve(response);
       } catch (_) {
-        await _gateway.logout();
+        // Refresh succeeded but the retried request failed for another reason:
+        // surface that error; do NOT log out (the new token is still valid).
+        return handler.next(err);
       }
     }
     handler.next(err);
