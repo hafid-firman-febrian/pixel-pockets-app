@@ -24,6 +24,8 @@ class AuthSessionRepository implements SessionGateway {
   @override
   Future<String?> currentAccessToken() => _store.readAccessToken();
 
+  Future<String?> currentUserName() => _store.readUserName();
+
   @override
   Future<String> refresh() {
     return _refreshing ??= _doRefresh().whenComplete(() => _refreshing = null);
