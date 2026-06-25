@@ -2,13 +2,18 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:pixel_pocket/core/widgets/pixel_bottom_nav.dart';
+import 'package:pixel_pocket/features/chart/presentation/screens/chart_screen.dart';
 import 'package:pixel_pocket/features/dashboard/presentation/screens/dashboard_screen.dart';
+import 'package:pixel_pocket/features/settings/presentation/screens/settings_screen.dart';
 import 'package:pixel_pocket/features/transactions/presentation/screens/transaction_screen.dart';
 import 'package:pixelarticons/pixel.dart';
 
 import '../../features/auth/presentation/controllers/auth_controller.dart';
+import '../../features/auth/presentation/controllers/pin_controller.dart';
 import '../../features/auth/presentation/screens/login_screen.dart';
+import '../../features/auth/presentation/screens/set_pin_screen.dart';
 import '../../features/auth/presentation/screens/splash_screen.dart';
+import '../../features/auth/presentation/screens/unlock_pin_screen.dart';
 import '../../features/auth/presentation/states/auth_state.dart';
 
 /// App route paths. As features land, register their screens below.
@@ -17,6 +22,8 @@ class AppRoutes {
 
   static const splash = '/splash';
   static const login = '/login';
+  static const setPin = '/set-pin';
+  static const unlock = '/unlock';
   static const String dashboard = '/';
   static const String transactions = '/transactions';
   static const String addTransaction = '/transactions/add';
@@ -56,8 +63,23 @@ final routerProvider = Provider<GoRouter>((ref) {
         return location == AppRoutes.login ? null : AppRoutes.login;
       }
 
-      // Signed in — keep the user out of the splash/login screens.
-      if (location == AppRoutes.login || location == AppRoutes.splash) {
+      // Session valid but PIN-locked — hold on the unlock screen.
+      // (Not emitted yet; activates with the session-restore work.)
+      if (auth is AuthLocked) {
+        return location == AppRoutes.unlock ? null : AppRoutes.unlock;
+      }
+
+      // Signed in. First-time users (no PIN yet) must create one.
+      final hasPin = ref.read(pinControllerProvider);
+      if (hasPin == false) {
+        return location == AppRoutes.setPin ? null : AppRoutes.setPin;
+      }
+
+      // Has PIN (or still resolving) — keep the user out of the entry screens.
+      if (location == AppRoutes.login ||
+          location == AppRoutes.splash ||
+          location == AppRoutes.setPin ||
+          location == AppRoutes.unlock) {
         return AppRoutes.dashboard;
       }
       return null;
@@ -72,6 +94,18 @@ final routerProvider = Provider<GoRouter>((ref) {
         path: AppRoutes.login,
         name: 'login',
         builder: (context, state) => const LoginScreen(),
+      ),
+      GoRoute(
+        path: AppRoutes.setPin,
+        name: 'setPin',
+        // On save, pin status flips to true and the redirect moves the user on.
+        builder: (context, state) => const SetPinScreen(),
+      ),
+      GoRoute(
+        path: AppRoutes.unlock,
+        name: 'unlock',
+        builder: (context, state) =>
+            UnlockPinScreen(onSuccess: () => context.go(AppRoutes.dashboard)),
       ),
       StatefulShellRoute.indexedStack(
         // AppShell = wrapper Scaffold yang berisi bottom nav
@@ -107,25 +141,25 @@ final routerProvider = Provider<GoRouter>((ref) {
             ],
           ),
 
-          // ── Tab 2: Chart ──────────────────────
-          // StatefulShellBranch(
-          //   routes: [
-          //     GoRoute(
-          //       path: AppRoutes.chart,
-          //       builder: (context, state) => const ChartScreen(),
-          //     ),
-          //   ],
-          // ),
+          // ── Tab 2: Chart (placeholder) ────────
+          StatefulShellBranch(
+            routes: [
+              GoRoute(
+                path: AppRoutes.chart,
+                builder: (context, state) => const ChartScreen(),
+              ),
+            ],
+          ),
 
           // ── Tab 3: Settings ───────────────────
-          // StatefulShellBranch(
-          //   routes: [
-          //     GoRoute(
-          //       path: AppRoutes.settings,
-          //       builder: (context, state) => const SettingsScreen(),
-          //     ),
-          //   ],
-          // ),
+          StatefulShellBranch(
+            routes: [
+              GoRoute(
+                path: AppRoutes.settings,
+                builder: (context, state) => const SettingsScreen(),
+              ),
+            ],
+          ),
         ],
       ),
     ],
@@ -162,6 +196,9 @@ final routerProvider = Provider<GoRouter>((ref) {
 class _AuthRefreshNotifier extends ChangeNotifier {
   _AuthRefreshNotifier(Ref ref) {
     ref.listen(authControllerProvider, (_, _) => notifyListeners());
+    // Re-run redirect when the PIN status resolves (null → true/false) so a
+    // freshly signed-in first-time user is sent to the set-PIN screen.
+    ref.listen(pinControllerProvider, (_, _) => notifyListeners());
   }
 }
 
