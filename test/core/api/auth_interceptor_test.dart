@@ -75,4 +75,23 @@ void main() {
     expect(gw.refreshCalls, 1);
     expect(gw.logoutCalls, 1);
   });
+
+  test('401 → refresh succeeds → retry called with new Bearer → resolved', () async {
+    final gw = _FakeGateway('tok');
+    Response<dynamic>? capturedRetryResponse;
+    final i = AuthInterceptor(
+      gw,
+      retry: (o) async {
+        expect(o.headers['Authorization'], 'Bearer fresh');
+        expect(o.extra['auth_retried'], true);
+        return capturedRetryResponse =
+            Response(requestOptions: o, statusCode: 200);
+      },
+    );
+    i.onError(_err(401), _SinkErrorHandler());
+    await Future<void>.delayed(const Duration(milliseconds: 10));
+    expect(gw.refreshCalls, 1);
+    expect(gw.logoutCalls, 0);
+    expect(capturedRetryResponse, isNotNull);
+  });
 }
