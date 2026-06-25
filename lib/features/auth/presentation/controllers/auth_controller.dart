@@ -16,6 +16,10 @@ final authControllerProvider = NotifierProvider<AuthController, AuthState>(
 class AuthController extends Notifier<AuthState> {
   StreamSubscription<AuthUser?>? _sub;
 
+  /// Guards against a second interactive sign-in while one is already running
+  /// (e.g. a double tap), which would open two Google account pickers at once.
+  bool _signingIn = false;
+
   AuthService get _service => ref.read(authServiceProvider);
 
   @override
@@ -54,8 +58,17 @@ class AuthController extends Notifier<AuthState> {
   /// SignIn event flows through [_onUserChanged]. (Cancel → null → no event,
   /// state stays signed-out.)
   Future<void> login() async {
+    if (_signingIn) {
+      debugPrint('[AUTH] login() ignored — sign-in already in progress');
+      return;
+    }
+    _signingIn = true;
     debugPrint('[AUTH] login() trigger');
-    await _service.signIn();
+    try {
+      await _service.signIn();
+    } finally {
+      _signingIn = false;
+    }
   }
 
   /// Triggers sign-out. State is NOT set here — the SignOut event flows through
@@ -63,6 +76,8 @@ class AuthController extends Notifier<AuthState> {
   Future<void> logout() async {
     debugPrint('[AUTH] logout() trigger');
     await _service.signOut();
+    // PIN is kept across logout: same account signs back in and reuses it
+    // without creating a new one. Cleared explicitly elsewhere if ever needed.
     ref.invalidate(
       transactionsControllerProvider,
     ); // drop the previous user's data

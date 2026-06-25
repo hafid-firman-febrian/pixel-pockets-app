@@ -1,20 +1,27 @@
 import 'package:dio/dio.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../features/auth/data/repositories/auth_repository.dart';
 import '../../features/auth/presentation/controllers/auth_controller.dart';
 import '../../features/auth/presentation/states/auth_state.dart';
-import 'api_client.dart';
 
-/// Attaches the Google ID token as a Bearer header on every request, and on a
-/// `401` tries once with a freshly fetched token before logging the user out.
+/// Attaches the Google ID token as a Bearer header on every request.
+///
+/// 401 handling is intentionally a pass-through for now. A 401 currently means
+/// the backend has not yet accepted the Google ID token (backend token-exchange
+/// work pending) — NOT that the session expired. Auto-logout belongs to the
+/// "30-day session expired" case (backend refresh token exhausted), which only
+/// exists once the backend issues its own tokens.
+///
+/// The previous 401 handler re-fetched a token via `lightweightAuthentication()`
+/// and logged out; that popped a Google sign-in sheet on every failed request,
+/// which — colliding with the login picker — produced a sign-in loop.
+///
+/// TODO(session): once backend refresh tokens land, log out here when a refresh
+/// genuinely fails (the real "session expired" signal).
 class AuthInterceptor extends Interceptor {
   AuthInterceptor(this._ref);
 
   final Ref _ref;
-
-  static const _retriedKey = 'auth_retried';
 
   @override
   void onRequest(RequestOptions options, RequestInterceptorHandler handler) {
@@ -23,46 +30,9 @@ class AuthInterceptor extends Interceptor {
       final token = auth.user.idToken;
 
       if (token != null) {
-        // TODO Hapus Jika sudah selesai testing
-        print(token);
-        Clipboard.setData(ClipboardData(text: token));
-        print('TOKEN length=${token.length} (sudah disalin ke clipboard)');
         options.headers['Authorization'] = 'Bearer $token';
       }
     }
     handler.next(options);
-  }
-
-  @override
-  void onError(DioException err, ErrorInterceptorHandler handler) async {
-    final is401 = err.response?.statusCode == 401;
-    final alreadyRetried = err.requestOptions.extra[_retriedKey] == true;
-
-    if (is401 && !alreadyRetried) {
-      final repo = _ref.read(authRepositoryProvider);
-      String? token;
-      try {
-        token = await repo.currentIdToken();
-      } catch (_) {
-        token = null;
-      }
-
-      if (token != null) {
-        final options = err.requestOptions
-          ..extra[_retriedKey] = true
-          ..headers['Authorization'] = 'Bearer $token';
-        try {
-          final response = await _ref.read(dioProvider).fetch(options);
-          return handler.resolve(response);
-        } catch (_) {
-          // fall through to logout
-        }
-      }
-
-      // Could not recover — treat the session as expired.
-      await _ref.read(authControllerProvider.notifier).logout();
-    }
-
-    handler.next(err);
   }
 }
