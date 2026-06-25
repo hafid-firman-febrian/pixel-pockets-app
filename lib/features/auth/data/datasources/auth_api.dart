@@ -36,5 +36,10 @@ final authApiProvider = Provider<AuthApi>(
   (ref) => AuthApi(Dio(BaseOptions(
     baseUrl: ApiEndpoints.prodBaseUrl,
     contentType: Headers.jsonContentType,
+    // Without these, a hanging endpoint leaves login spinning forever; a
+    // timeout surfaces a Failure the UI can show instead. Mirrors ApiClient.
+    connectTimeout: const Duration(seconds: 15),
+    receiveTimeout: const Duration(seconds: 15),
+    sendTimeout: const Duration(seconds: 15),
   ))),
 );
