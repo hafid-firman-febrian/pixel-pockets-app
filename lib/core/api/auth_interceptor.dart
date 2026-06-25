@@ -1,38 +1,54 @@
 import 'package:dio/dio.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../features/auth/presentation/controllers/auth_controller.dart';
-import '../../features/auth/presentation/states/auth_state.dart';
+/// Minimal seam the interceptor needs from the session layer — keeps the
+/// interceptor unit-testable without Riverpod.
+abstract class SessionGateway {
+  Future<String?> currentAccessToken();
+  Future<String> refresh();
+  Future<void> logout();
+}
 
-/// Attaches the Google ID token as a Bearer header on every request.
-///
-/// 401 handling is intentionally a pass-through for now. A 401 currently means
-/// the backend has not yet accepted the Google ID token (backend token-exchange
-/// work pending) — NOT that the session expired. Auto-logout belongs to the
-/// "30-day session expired" case (backend refresh token exhausted), which only
-/// exists once the backend issues its own tokens.
-///
-/// The previous 401 handler re-fetched a token via `lightweightAuthentication()`
-/// and logged out; that popped a Google sign-in sheet on every failed request,
-/// which — colliding with the login picker — produced a sign-in loop.
-///
-/// TODO(session): once backend refresh tokens land, log out here when a refresh
-/// genuinely fails (the real "session expired" signal).
+/// Attaches the backend access token as Bearer. On 401, refreshes once
+/// (single-flight lives in the gateway) and retries the original request; if
+/// refresh fails, logs out. On 403, passes the error through to the UI.
 class AuthInterceptor extends Interceptor {
-  AuthInterceptor(this._ref);
+  AuthInterceptor(this._gateway, {required this.retry});
 
-  final Ref _ref;
+  final SessionGateway _gateway;
+
+  /// Re-issues the original request after a refresh. In the app this is
+  /// `(o) => dio.fetch(o)`; in tests it is stubbed.
+  final Future<Response<dynamic>> Function(RequestOptions options) retry;
+
+  static const _retriedKey = 'auth_retried';
 
   @override
-  void onRequest(RequestOptions options, RequestInterceptorHandler handler) {
-    final auth = _ref.read(authControllerProvider);
-    if (auth is AuthSignedIn) {
-      final token = auth.user.idToken;
-
-      if (token != null) {
-        options.headers['Authorization'] = 'Bearer $token';
-      }
+  void onRequest(RequestOptions options, RequestInterceptorHandler handler) async {
+    final token = await _gateway.currentAccessToken();
+    if (token != null) {
+      options.headers['Authorization'] = 'Bearer $token';
     }
     handler.next(options);
+  }
+
+  @override
+  void onError(DioException err, ErrorInterceptorHandler handler) async {
+    final status = err.response?.statusCode;
+    final alreadyRetried = err.requestOptions.extra[_retriedKey] == true;
+
+    // 403 = email not allowed → surface to UI, never refresh.
+    if (status == 401 && !alreadyRetried) {
+      try {
+        final newToken = await _gateway.refresh();
+        final options = err.requestOptions
+          ..extra[_retriedKey] = true
+          ..headers['Authorization'] = 'Bearer $newToken';
+        final response = await retry(options);
+        return handler.resolve(response);
+      } catch (_) {
+        await _gateway.logout();
+      }
+    }
+    handler.next(err);
   }
 }

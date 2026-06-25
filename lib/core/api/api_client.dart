@@ -4,6 +4,7 @@ import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../features/auth/data/repositories/auth_session_repository.dart';
 import 'api_endpoints.dart';
 import 'auth_interceptor.dart';
 
@@ -11,7 +12,11 @@ import 'auth_interceptor.dart';
 /// so the Bearer header is attached before logging.
 final apiClientProvider = Provider<ApiClient>((ref) {
   final client = ApiClient();
-  client.dio.interceptors.insert(0, AuthInterceptor(ref));
+  final gateway = ref.watch(authSessionRepositoryProvider);
+  client.dio.interceptors.insert(
+    0,
+    AuthInterceptor(gateway, retry: (options) => client.dio.fetch(options)),
+  );
   return client;
 });
 
