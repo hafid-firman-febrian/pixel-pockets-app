@@ -70,7 +70,7 @@ class AuthController extends Notifier<AuthState> {
         throw const Failure(message: 'Google tidak mengembalikan ID token.');
       }
       await _session.exchangeGoogle(idToken); // throws Failure on 403/400/etc.
-      state = AuthSignedIn(user);
+      state = AuthSignedIn(_restoredUser(user.displayName));
     } finally {
       _signingIn = false;
     }
@@ -79,14 +79,17 @@ class AuthController extends Notifier<AuthState> {
   /// Sign-out: clear backend tokens, best-effort Google sign-out, then mark the
   /// app signed-out and drop the previous user's data. PIN is kept across logout.
   Future<void> logout() async {
-    await _session.logout(); // clears backend tokens (best-effort API call)
     try {
-      await _service.signOut();
-    } catch (_) {
-      // Google sign-out is best-effort.
+      await _session.logout(); // clears backend tokens (best-effort API call)
+    } finally {
+      try {
+        await _service.signOut();
+      } catch (_) {
+        // Google sign-out is best-effort.
+      }
+      state = const AuthSignedOut();
+      ref.invalidate(transactionsControllerProvider); // drop previous user's data
+      // PIN is intentionally kept across logout.
     }
-    state = const AuthSignedOut();
-    ref.invalidate(transactionsControllerProvider); // drop previous user's data
-    // PIN is intentionally kept across logout.
   }
 }
