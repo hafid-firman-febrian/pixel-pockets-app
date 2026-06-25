@@ -1,3 +1,4 @@
+import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:pixel_pocket/core/error/failure.dart';
 import 'package:pixel_pocket/features/auth/data/datasources/auth_api.dart';
@@ -43,6 +44,20 @@ class _ThrowingLogoutApi extends _FakeApi {
   Future<void> logout(String refreshToken) async => throw Exception('network down');
 }
 
+/// API whose token calls fail at the transport layer (timeout / no connection).
+class _DioThrowingApi extends _FakeApi {
+  @override
+  Future<AuthSessionDto> exchangeGoogle(String idToken) async => throw DioException(
+    requestOptions: RequestOptions(path: '/api/auth/google'),
+    type: DioExceptionType.connectionTimeout,
+  );
+  @override
+  Future<AuthSessionDto> refresh(String refreshToken) async => throw DioException(
+    requestOptions: RequestOptions(path: '/api/auth/refresh'),
+    type: DioExceptionType.connectionError,
+  );
+}
+
 void main() {
   test('concurrent refresh() calls share a single in-flight API call', () async {
     final api = _FakeApi();
@@ -81,5 +96,22 @@ void main() {
     await repo.logout();
     expect(store.access, isNull);
     expect(store.refresh, isNull);
+  });
+
+  test('exchangeGoogle maps a transport DioException to a friendly Failure', () async {
+    final repo = AuthSessionRepository(_DioThrowingApi(), _FakeStore());
+    await expectLater(
+      () => repo.exchangeGoogle('gid'),
+      throwsA(isA<Failure>().having((f) => f.type, 'type', FailureType.timeout)),
+    );
+  });
+
+  test('refresh maps a transport DioException to a friendly Failure', () async {
+    final store = _FakeStore()..refresh = 'r';
+    final repo = AuthSessionRepository(_DioThrowingApi(), store);
+    await expectLater(
+      () => repo.refresh(),
+      throwsA(isA<Failure>().having((f) => f.type, 'type', FailureType.noConnection)),
+    );
   });
 }

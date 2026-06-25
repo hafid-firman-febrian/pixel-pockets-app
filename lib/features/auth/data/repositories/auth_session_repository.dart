@@ -1,3 +1,4 @@
+import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:pixel_pocket/core/api/auth_interceptor.dart';
 import 'package:pixel_pocket/core/error/failure.dart';
@@ -17,8 +18,17 @@ class AuthSessionRepository implements SessionGateway {
   Future<String>? _refreshing;
 
   Future<void> exchangeGoogle(String idToken) async {
-    final s = await _api.exchangeGoogle(idToken);
-    await _store.save(accessToken: s.accessToken, refreshToken: s.refreshToken, userName: s.name);
+    try {
+      final s = await _api.exchangeGoogle(idToken);
+      await _store.save(
+        accessToken: s.accessToken,
+        refreshToken: s.refreshToken,
+        userName: s.name,
+      );
+    } on DioException catch (e) {
+      // Timeout / no connection / 4xx-5xx → friendly, UI-safe message.
+      throw Failure.fromDio(e);
+    }
   }
 
   @override
@@ -36,9 +46,13 @@ class AuthSessionRepository implements SessionGateway {
     if (rt == null) {
       throw const Failure(message: 'Sesi habis. Silakan login lagi.', statusCode: 401);
     }
-    final s = await _api.refresh(rt);
-    await _store.save(accessToken: s.accessToken, refreshToken: s.refreshToken);
-    return s.accessToken;
+    try {
+      final s = await _api.refresh(rt);
+      await _store.save(accessToken: s.accessToken, refreshToken: s.refreshToken);
+      return s.accessToken;
+    } on DioException catch (e) {
+      throw Failure.fromDio(e);
+    }
   }
 
   @override
