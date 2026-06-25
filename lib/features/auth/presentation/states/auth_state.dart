@@ -15,6 +15,17 @@ class AuthSignedOut extends AuthState {
   const AuthSignedOut();
 }
 
+/// Session is valid but the app is locked behind the local PIN. The router
+/// holds the user on the unlock screen until the PIN is entered.
+///
+/// NOTE: not emitted yet — the trigger (silent session restore on launch)
+/// lands with the session/refresh-token work. The state + routing are in place
+/// so that wiring is a one-line change later.
+class AuthLocked extends AuthState {
+  const AuthLocked(this.user);
+  final AuthUser user;
+}
+
 class AuthSignedIn extends AuthState {
   const AuthSignedIn(this.user);
   final AuthUser user;

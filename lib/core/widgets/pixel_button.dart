@@ -6,7 +6,15 @@ import 'package:pixel_pocket/core/theme/app_color.dart';
 // ENUMS
 // =============================================================================
 
-enum PixelButtonVariant { primary, secondary, danger, ghost, income, expense }
+enum PixelButtonVariant {
+  primary,
+  secondary,
+  danger,
+  ghost,
+  income,
+  expense,
+  surface, // filled neutral dark — e.g. PIN keypad keys
+}
 
 enum PixelButtonSize { sm, md, lg }
 
@@ -210,6 +218,13 @@ class _PixelButtonState extends State<PixelButton>
       case PixelButtonVariant.ghost:
         return _PixelButtonColors(
           face: Colors.transparent,
+          shadow: AppColors.border,
+          label: AppColors.textPrimary,
+          border: AppColors.border,
+        );
+      case PixelButtonVariant.surface:
+        return _PixelButtonColors(
+          face: AppColors.surfaceVariant,
           shadow: AppColors.border,
           label: AppColors.textPrimary,
           border: AppColors.border,
@@ -457,6 +472,15 @@ class _PixelIconButtonState extends State<PixelIconButton> {
           shadow: AppColors.border,
           label: AppColors.textPrimary,
           border: AppColors.border,
+        );
+      case PixelButtonVariant.surface:
+        return _PixelButtonColors(
+          face: AppColors.surfaceVariant,
+          shadow: const Color(
+            0xFF0D0D0D,
+          ), // darker than bg → visible depth below
+          label: AppColors.textPrimary,
+          border: const Color(0xFF0D0D0D), // match shadow (like other variants)
         );
     }
   }
