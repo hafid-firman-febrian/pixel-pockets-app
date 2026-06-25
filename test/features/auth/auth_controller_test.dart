@@ -131,6 +131,28 @@ void main() {
     expect(container.read(authControllerProvider), isA<AuthSignedIn>());
   });
 
+  test('after successful login, signed-in user has idToken null', () async {
+    final service = _FakeAuthService(
+      signInResult: const AuthUser(
+        id: '1',
+        email: 'a@b.com',
+        displayName: 'Ammar',
+        idToken: 'gid',
+      ),
+    );
+    final session = _FakeSession();
+    final container = _makeContainer(service, session);
+
+    container.read(authControllerProvider);
+    await _settle();
+
+    await container.read(authControllerProvider.notifier).login();
+
+    final state = container.read(authControllerProvider);
+    expect(state, isA<AuthSignedIn>());
+    expect((state as AuthSignedIn).user.idToken, isNull);
+  });
+
   test('login rethrows when exchange fails (403) and stays signed out',
       () async {
     final service = _FakeAuthService(
