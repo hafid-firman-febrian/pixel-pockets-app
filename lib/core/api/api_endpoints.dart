@@ -17,6 +17,12 @@ class ApiEndpoints {
   static const String androidDevBaseUrl = 'http://10.0.2.2:3000';
   static const String iosDevBaseUrl = 'http://localhost:3000';
 
+  // ---- Auth ----
+  static const String authGoogle = '/api/auth/google';
+  static const String authRefresh = '/api/auth/refresh';
+  static const String authLogout = '/api/auth/logout';
+  static const String authMe = '/api/auth/me';
+
   // ---- Categories ----
   static const String categories = '/api/categories';
   static const String categoriesSeed = '/api/categories/seed';
