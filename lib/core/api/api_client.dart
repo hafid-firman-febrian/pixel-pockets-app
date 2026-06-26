@@ -8,8 +8,6 @@ import '../../features/auth/data/repositories/auth_session_repository.dart';
 import 'api_endpoints.dart';
 import 'auth_interceptor.dart';
 
-/// App-wide [ApiClient] singleton, with the auth interceptor installed first
-/// so the Bearer header is attached before logging.
 final apiClientProvider = Provider<ApiClient>((ref) {
   final client = ApiClient();
   final gateway = ref.watch(authSessionRepositoryProvider);
@@ -20,17 +18,8 @@ final apiClientProvider = Provider<ApiClient>((ref) {
   return client;
 });
 
-/// Convenience provider exposing the configured [Dio] instance.
-/// Repositories depend on this rather than constructing their own Dio.
 final dioProvider = Provider<Dio>((ref) => ref.watch(apiClientProvider).dio);
 
-/// Owns the single configured [Dio] instance for the whole app.
-///
-/// Base URL resolution:
-/// - Release builds always point at production.
-/// - Debug/profile builds also point at production for now, because there is
-///   no local dev server yet. Flip [_useLocalDevServer] to `true` once one is
-///   running to route debug builds to the per-platform local hosts.
 class ApiClient {
   ApiClient() : dio = Dio(_baseOptions()) {
     dio.interceptors.add(
@@ -59,8 +48,6 @@ class ApiClient {
     );
   }
 
-  /// Set to `true` to route debug/profile builds at the local dev server.
-  /// Left `false` while the API only lives on Vercel (no local server yet).
   static const bool _useLocalDevServer = false;
 
   static String _resolveBaseUrl() {

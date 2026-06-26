@@ -73,7 +73,7 @@ class PeriodFilterCard extends ConsumerWidget {
     showModalBottomSheet<void>(
       context: context,
       backgroundColor: Colors.transparent,
-      barrierColor: AppColors.background.withOpacity(0.72),
+      barrierColor: AppColors.background.withValues(alpha: 0.72),
       isScrollControlled: true,
       useSafeArea: true,
       builder: (_) {
@@ -87,7 +87,11 @@ class PeriodFilterCard extends ConsumerWidget {
 }
 
 class PixelBottomSheetFrame extends StatelessWidget {
-  const PixelBottomSheetFrame({required this.child, required this.title});
+  const PixelBottomSheetFrame({
+    super.key,
+    required this.child,
+    required this.title,
+  });
 
   final Widget child;
   final String title;
@@ -112,17 +116,9 @@ class PixelBottomSheetFrame extends StatelessWidget {
             color: AppColors.surface,
             borderRadius: BorderRadius.circular(14),
             border: Border.all(
-              color: AppColors.border.withOpacity(0.75),
+              color: AppColors.border.withValues(alpha: 0.75),
               width: 1.4,
             ),
-            // boxShadow: [
-            //   BoxShadow(
-            //     color: AppColors.primary.withOpacity(0.18),
-            //     blurRadius: 24,
-            //     spreadRadius: 1,
-            //     offset: const Offset(0, -2),
-            //   ),
-            // ],
           ),
           child: ClipRRect(
             borderRadius: BorderRadius.circular(13),
@@ -160,7 +156,7 @@ class _TerminalSheetTopBar extends StatelessWidget {
         color: AppColors.surface,
         border: Border(
           bottom: BorderSide(
-            color: AppColors.primary.withOpacity(0.45),
+            color: AppColors.primary.withValues(alpha: 0.45),
             width: 1,
           ),
         ),
@@ -314,8 +310,8 @@ class _PeriodPickerSheetState extends ConsumerState<_PeriodPickerSheet> {
                                 setState(() => _selectedYear = year);
                               },
                               backgroundColor: AppColors.surface,
-                              selectedColor: AppColors.primary.withOpacity(
-                                0.18,
+                              selectedColor: AppColors.primary.withValues(
+                                alpha: 0.18,
                               ),
                               side: BorderSide(
                                 color: year == _selectedYear

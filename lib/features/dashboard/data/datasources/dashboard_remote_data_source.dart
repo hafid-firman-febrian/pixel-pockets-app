@@ -14,7 +14,7 @@ class DashboardRemoteDataSource {
     final response = await _dio.get(
       ApiEndpoints.summary,
       queryParameters: {
-        if (salaryPeriodId != null) 'salary_period_id': salaryPeriodId,
+        'salary_period_id': ?salaryPeriodId,
       },
     );
 
