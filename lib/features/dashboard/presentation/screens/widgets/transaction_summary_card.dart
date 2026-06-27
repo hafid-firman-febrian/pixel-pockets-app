@@ -57,7 +57,7 @@ class TransactionSummaryCard extends StatelessWidget {
                         ),
                         TextSpan(
                           text: CurrencyFormatter.formatWhileTyping(
-                            summary.balance.toString(),
+                            CurrencyFormatter.format(summary.balance),
                           ),
                           style: AppTextStyles.numericXl.copyWith(
                             color: AppColors.textPrimary,
