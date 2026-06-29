@@ -3,22 +3,19 @@ import 'package:pixel_pocket/core/theme/app_spacing.dart';
 import 'package:pixel_pocket/core/widgets/pixel_button.dart';
 import 'package:pixelarticons/pixel.dart';
 
-/// On-screen numeric keypad in the retro pixel style. Reuses [PixelButton] for
-/// digits and [PixelIconButton] for backspace — no system keyboard.
-///
-/// Layout is a 3-column grid: 1-9, then an empty slot, 0, and backspace.
 class PixelPinPad extends StatelessWidget {
   const PixelPinPad({
     super.key,
     required this.onDigit,
     required this.onBackspace,
+    this.enabled = true,
   });
 
-  /// Called with the tapped digit ('0'-'9').
   final ValueChanged<String> onDigit;
 
-  /// Called when backspace is tapped.
   final VoidCallback onBackspace;
+
+  final bool enabled;
 
   static const _rows = [
     ['1', '2', '3'],
@@ -54,13 +51,12 @@ class PixelPinPad extends StatelessWidget {
   Widget _key(String key) {
     if (key.isEmpty) return const SizedBox(height: 52);
     if (key == 'back') {
-      return Center(
-        child: PixelIconButton(
-          icon: Pixel.delete,
-          variant: PixelButtonVariant.surface,
-          size: PixelButtonSize.lg,
-          onPressed: onBackspace,
-        ),
+      return PixelButton(
+        icon: Pixel.delete,
+        variant: PixelButtonVariant.danger,
+        size: PixelButtonSize.lg,
+        isFullWidth: true,
+        onPressed: enabled ? onBackspace : null,
       );
     }
     return PixelButton(
@@ -68,7 +64,7 @@ class PixelPinPad extends StatelessWidget {
       variant: PixelButtonVariant.surface,
       size: PixelButtonSize.lg,
       isFullWidth: true,
-      onPressed: () => onDigit(key),
+      onPressed: enabled ? () => onDigit(key) : null,
     );
   }
 }

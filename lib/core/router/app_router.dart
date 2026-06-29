@@ -16,7 +16,6 @@ import '../../features/auth/presentation/screens/splash_screen.dart';
 import '../../features/auth/presentation/screens/unlock_pin_screen.dart';
 import '../../features/auth/presentation/states/auth_state.dart';
 
-/// App route paths. As features land, register their screens below.
 class AppRoutes {
   AppRoutes._();
 
@@ -43,8 +42,6 @@ const _navItems = [
   ),
 ];
 
-/// The app router. Lives in a provider so its [GoRouter.redirect] can read the
-/// current [AuthState] and so it can refresh when auth changes.
 final routerProvider = Provider<GoRouter>((ref) {
   return GoRouter(
     initialLocation: AppRoutes.splash,
@@ -53,29 +50,23 @@ final routerProvider = Provider<GoRouter>((ref) {
       final auth = ref.read(authControllerProvider);
       final location = state.matchedLocation;
 
-      // Still resolving the silent sign-in — hold on the splash screen.
       if (auth is AuthUnknown) {
         return location == AppRoutes.splash ? null : AppRoutes.splash;
       }
 
-      // Signed out — force the login screen.
       if (auth is AuthSignedOut) {
         return location == AppRoutes.login ? null : AppRoutes.login;
       }
 
-      // Session valid but PIN-locked — hold on the unlock screen.
-      // (Not emitted yet; activates with the session-restore work.)
       if (auth is AuthLocked) {
         return location == AppRoutes.unlock ? null : AppRoutes.unlock;
       }
 
-      // Signed in. First-time users (no PIN yet) must create one.
       final hasPin = ref.read(pinControllerProvider);
       if (hasPin == false) {
         return location == AppRoutes.setPin ? null : AppRoutes.setPin;
       }
 
-      // Has PIN (or still resolving) — keep the user out of the entry screens.
       if (location == AppRoutes.login ||
           location == AppRoutes.splash ||
           location == AppRoutes.setPin ||
@@ -98,23 +89,23 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: AppRoutes.setPin,
         name: 'setPin',
-        // On save, pin status flips to true and the redirect moves the user on.
+
         builder: (context, state) => const SetPinScreen(),
       ),
       GoRoute(
         path: AppRoutes.unlock,
         name: 'unlock',
-        builder: (context, state) =>
-            UnlockPinScreen(onSuccess: () => context.go(AppRoutes.dashboard)),
+
+        builder: (context, state) => UnlockPinScreen(
+          onSuccess: () => ref.read(authControllerProvider.notifier).unlock(),
+        ),
       ),
       StatefulShellRoute.indexedStack(
-        // AppShell = wrapper Scaffold yang berisi bottom nav
         builder: (context, state, shell) {
           return AppShell(shell: shell);
         },
 
         branches: [
-          // ── Tab 0: Dashboard ──────────────────
           StatefulShellBranch(
             routes: [
               GoRoute(
@@ -124,24 +115,15 @@ final routerProvider = Provider<GoRouter>((ref) {
             ],
           ),
 
-          // ── Tab 1: Transactions ───────────────
           StatefulShellBranch(
             routes: [
               GoRoute(
                 path: AppRoutes.transactions,
                 builder: (context, state) => const TransactionScreen(),
-                // routes: [
-                //   // Sub-route: add — TIDAK tampilkan bottom nav
-                //   GoRoute(
-                //     path: 'add',
-                //     builder: (context, state) => const AddTransactionScreen(),
-                //   ),
-                // ],
               ),
             ],
           ),
 
-          // ── Tab 2: Chart (placeholder) ────────
           StatefulShellBranch(
             routes: [
               GoRoute(
@@ -151,7 +133,6 @@ final routerProvider = Provider<GoRouter>((ref) {
             ],
           ),
 
-          // ── Tab 3: Settings ───────────────────
           StatefulShellBranch(
             routes: [
               GoRoute(
@@ -163,41 +144,17 @@ final routerProvider = Provider<GoRouter>((ref) {
         ],
       ),
     ],
-    // routes: [
-    //   GoRoute(
-    //     path: AppRoutes.splash,
-    //     name: 'splash',
-    //     builder: (context, state) => const SplashScreen(),
-    //   ),
-    //   GoRoute(
-    //     path: AppRoutes.login,
-    //     name: 'login',
-    //     builder: (context, state) => const LoginScreen(),
-    //   ),
-    //   GoRoute(
-    //     path: AppRoutes.transactions,
-    //     name: 'transactions',
-    //     builder: (context, state) => const TransactionScreen(),
-    //   ),
-    //   GoRoute(
-    //     path: AppRoutes.chart,
-    //     name: 'categories',
-    //     builder: (context, state) => const CategoryScreen(),
-    //   ),
-    // ],
+
     errorBuilder: (context, state) => Scaffold(
       body: Center(child: Text('Halaman tidak ditemukan: ${state.uri}')),
     ),
   );
 });
 
-/// Bridges [authControllerProvider] changes to go_router so the redirect
-/// re-runs whenever the auth state changes.
 class _AuthRefreshNotifier extends ChangeNotifier {
   _AuthRefreshNotifier(Ref ref) {
     ref.listen(authControllerProvider, (_, _) => notifyListeners());
-    // Re-run redirect when the PIN status resolves (null → true/false) so a
-    // freshly signed-in first-time user is sent to the set-PIN screen.
+
     ref.listen(pinControllerProvider, (_, _) => notifyListeners());
   }
 }
@@ -210,7 +167,6 @@ class AppShell extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      // shell.currentIndex otomatis berubah saat navigasi
       body: shell,
       bottomNavigationBar: PixelBottomNav(
         items: _navItems,
@@ -221,11 +177,6 @@ class AppShell extends StatelessWidget {
   }
 
   void _onTap(int index) {
-    shell.goBranch(
-      index,
-      // Tap tab yang sudah aktif → kembali ke root tab tersebut
-      // Contoh: di /transactions/add, tap tab TXN → balik ke /transactions
-      initialLocation: index == shell.currentIndex,
-    );
+    shell.goBranch(index, initialLocation: index == shell.currentIndex);
   }
 }
