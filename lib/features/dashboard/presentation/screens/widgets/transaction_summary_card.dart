@@ -99,7 +99,6 @@ class TransactionSummaryCard extends ConsumerWidget {
                             padding: EdgeInsets.all(AppSpacing.s4),
                             child: Icon(
                               isHidden ? Pixel.eyeclosed : Pixel.eye,
-                              size: 18,
                               color: AppColors.textSecondary,
                             ),
                           ),
