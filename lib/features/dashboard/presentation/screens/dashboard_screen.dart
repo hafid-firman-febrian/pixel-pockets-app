@@ -4,6 +4,7 @@ import 'package:pixel_pocket/core/theme/app_color.dart';
 import 'package:pixel_pocket/core/theme/app_spacing.dart';
 import 'package:pixel_pocket/core/theme/app_text_style.dart';
 import 'package:pixel_pocket/core/widgets/pixel_button.dart';
+import 'package:pixel_pocket/core/widgets/pixel_confirm_dialog.dart';
 import 'package:pixel_pocket/features/auth/presentation/controllers/auth_controller.dart';
 import 'package:pixel_pocket/features/dashboard/domain/models/transaction_summary.dart';
 import 'package:pixel_pocket/features/dashboard/presentation/states/dashboard_state.dart';
@@ -46,8 +47,7 @@ class DashboardScreen extends ConsumerWidget {
                       style: AppTextStyles.displayMedium,
                     ),
                     PixelButton(
-                      onPressed: () =>
-                          ref.read(authControllerProvider.notifier).logout(),
+                      onPressed: () => _confirmLogout(context, ref),
                       variant: PixelButtonVariant.danger,
                       icon: Pixel.logout,
                       size: PixelButtonSize.sm,
@@ -97,6 +97,19 @@ class DashboardScreen extends ConsumerWidget {
         ),
       ),
     );
+  }
+
+  Future<void> _confirmLogout(BuildContext context, WidgetRef ref) async {
+    final confirmed = await showPixelConfirm(
+      context,
+      title: 'Logout?',
+      message: 'Sesi akan diakhiri dan kamu perlu login lagi untuk masuk.',
+      confirmLabel: 'Logout',
+      confirmVariant: PixelButtonVariant.danger,
+      icon: Pixel.logout,
+    );
+    if (!confirmed) return;
+    await ref.read(authControllerProvider.notifier).logout();
   }
 
   Future<void> _refresh(WidgetRef ref) async {
