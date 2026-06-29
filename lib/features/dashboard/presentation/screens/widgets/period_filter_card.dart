@@ -10,16 +10,21 @@ import 'package:pixel_pocket/features/salary_period/presentation/states/salary_p
 import 'package:pixelarticons/pixelarticons.dart';
 import 'package:skeletonizer/skeletonizer.dart';
 
-class PeriodFilterCard extends ConsumerWidget {
+class PeriodFilterCard extends ConsumerStatefulWidget {
   const PeriodFilterCard({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<PeriodFilterCard> createState() => _PeriodFilterCardState();
+}
+
+class _PeriodFilterCardState extends ConsumerState<PeriodFilterCard> {
+  bool _sheetOpen = false;
+
+  @override
+  Widget build(BuildContext context) {
     final selection = ref.watch(selectedPeriodProvider);
     final effective = ref.watch(effectivePeriodProvider);
 
-    
-    
     final label = effective.hasError
         ? '-'
         : switch (selection) {
@@ -31,7 +36,7 @@ class PeriodFilterCard extends ConsumerWidget {
           };
 
     return InkWell(
-      onTap: () => _openPicker(context, ref),
+      onTap: _openPicker,
       child: Container(
         decoration: BoxDecoration(
           color: AppColors.surface,
@@ -47,8 +52,6 @@ class PeriodFilterCard extends ConsumerWidget {
             children: [
               Text('PERIOD', style: AppTextStyles.bodyNormal),
               Skeletonizer(
-                // Skeleton hanya saat initial load; saat pull-to-refresh
-                // periode lama tetap tampil (cukup spinner RefreshIndicator).
                 enabled: effective.isLoading && !effective.hasValue,
                 child: Row(
                   children: [
@@ -60,10 +63,14 @@ class PeriodFilterCard extends ConsumerWidget {
                       ),
                     ),
                     SizedBox(width: AppSpacing.s6),
-                    Icon(
-                      Pixel.chevrondown,
-                      size: AppSizing.iconMd,
-                      color: AppColors.primary,
+                    AnimatedRotation(
+                      turns: _sheetOpen ? 0.5 : 0,
+                      duration: const Duration(milliseconds: 200),
+                      child: const Icon(
+                        Pixel.chevrondown,
+                        size: AppSizing.iconMd,
+                        color: AppColors.primary,
+                      ),
                     ),
                   ],
                 ),
@@ -75,8 +82,9 @@ class PeriodFilterCard extends ConsumerWidget {
     );
   }
 
-  void _openPicker(BuildContext context, WidgetRef ref) {
-    showModalBottomSheet<void>(
+  Future<void> _openPicker() async {
+    setState(() => _sheetOpen = true);
+    await showModalBottomSheet<void>(
       context: context,
       backgroundColor: Colors.transparent,
       barrierColor: AppColors.background.withValues(alpha: 0.72),
@@ -84,11 +92,12 @@ class PeriodFilterCard extends ConsumerWidget {
       useSafeArea: true,
       builder: (_) {
         return const PixelBottomSheetFrame(
-          title: 'period_filter',
+          title: 'SELECT PERIOD',
           child: _PeriodPickerSheet(),
         );
       },
     );
+    if (mounted) setState(() => _sheetOpen = false);
   }
 }
 
@@ -118,30 +127,24 @@ class PixelBottomSheetFrame extends StatelessWidget {
         child: Container(
           width: size.width,
           constraints: BoxConstraints(maxHeight: size.height * 0.62),
+
           decoration: BoxDecoration(
             color: AppColors.surface,
-            borderRadius: BorderRadius.circular(14),
-            border: Border.all(
-              color: AppColors.border.withValues(alpha: 0.75),
-              width: 1.4,
-            ),
+            border: Border.all(color: AppColors.border),
+            boxShadow: const [
+              BoxShadow(
+                color: AppColors.border,
+                offset: Offset(0, 5),
+                blurRadius: 0,
+              ),
+            ],
           ),
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(13),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                _TerminalSheetTopBar(title),
-                Flexible(
-                  child: DecoratedBox(
-                    decoration: const BoxDecoration(
-                      color: AppColors.background,
-                    ),
-                    child: child,
-                  ),
-                ),
-              ],
-            ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              _PixelSheetHeader(title: title),
+              Flexible(child: child),
+            ],
           ),
         ),
       ),
@@ -149,61 +152,45 @@ class PixelBottomSheetFrame extends StatelessWidget {
   }
 }
 
-class _TerminalSheetTopBar extends StatelessWidget {
-  const _TerminalSheetTopBar(this.title);
+class _PixelSheetHeader extends StatelessWidget {
+  const _PixelSheetHeader({required this.title});
   final String title;
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      height: 42,
-      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.s12),
-      decoration: BoxDecoration(
-        color: AppColors.surface,
-        border: Border(
-          bottom: BorderSide(
-            color: AppColors.primary.withValues(alpha: 0.45),
-            width: 1,
-          ),
-        ),
+      padding: const EdgeInsets.fromLTRB(
+        AppSpacing.s16,
+        AppSpacing.s12,
+        AppSpacing.s8,
+        AppSpacing.s12,
+      ),
+      decoration: const BoxDecoration(
+        border: Border(bottom: BorderSide(color: AppColors.border)),
       ),
       child: Row(
         children: [
-          _windowDot(const Color(0xFFFF5F56)),
-          const SizedBox(width: AppSpacing.s6),
-          _windowDot(const Color(0xFFFFBD2E)),
-          const SizedBox(width: AppSpacing.s6),
-          _windowDot(const Color(0xFF27C93F)),
-          const SizedBox(width: AppSpacing.s12),
           Expanded(
             child: Text(
               title,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
-              style: AppTextStyles.bodyNormal.copyWith(
-                color: AppColors.primary,
-                fontWeight: FontWeight.w900,
-                letterSpacing: 1.2,
-              ),
+              style: AppTextStyles.headingSmall,
             ),
           ),
-          Text(
-            '▂',
-            style: AppTextStyles.bodyNormal.copyWith(
-              color: AppColors.primary,
-              fontWeight: FontWeight.w900,
+          InkWell(
+            onTap: () => Navigator.of(context).maybePop(),
+            child: const Padding(
+              padding: EdgeInsets.all(AppSpacing.s4),
+              child: Icon(
+                Pixel.close,
+                size: 20,
+                color: AppColors.textSecondary,
+              ),
             ),
           ),
         ],
       ),
-    );
-  }
-
-  Widget _windowDot(Color color) {
-    return Container(
-      width: 9,
-      height: 9,
-      decoration: BoxDecoration(color: color, shape: BoxShape.circle),
     );
   }
 }
@@ -222,9 +209,18 @@ class _PeriodPickerSheetState extends ConsumerState<_PeriodPickerSheet> {
     return DateTime.parse(period.startDate).year;
   }
 
+  bool _isCurrentPeriod(SalaryPeriodModel period) {
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    final start = DateTime.parse(period.startDate);
+    final end = DateTime.parse(period.endDate);
+    return !today.isBefore(start) && !today.isAfter(end);
+  }
+
   @override
   Widget build(BuildContext context) {
     final periodsAsync = ref.watch(salaryPeriodProvider);
+    final selection = ref.watch(selectedPeriodProvider);
 
     return SafeArea(
       top: false,
@@ -275,7 +271,7 @@ class _PeriodPickerSheetState extends ConsumerState<_PeriodPickerSheet> {
           ),
           data: (periods) {
             final years = periods.map(_yearOf).toSet().toList()
-              ..sort((a, b) => b.compareTo(a));
+              ..sort((a, b) => a.compareTo(b));
 
             final filtered = periods
                 .where((period) => _yearOf(period) == _selectedYear)
@@ -285,17 +281,7 @@ class _PeriodPickerSheetState extends ConsumerState<_PeriodPickerSheet> {
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Padding(
-                  padding: AppSpacing.card,
-                  child: Text(
-                    '> SELECT PERIOD',
-                    style: AppTextStyles.bodyNormal.copyWith(
-                      color: AppColors.primary,
-                      fontWeight: FontWeight.w900,
-                      letterSpacing: 1.1,
-                    ),
-                  ),
-                ),
+                const SizedBox(height: AppSpacing.s12),
                 if (years.isNotEmpty)
                   SingleChildScrollView(
                     scrollDirection: Axis.horizontal,
@@ -309,31 +295,10 @@ class _PeriodPickerSheetState extends ConsumerState<_PeriodPickerSheet> {
                             padding: const EdgeInsets.only(
                               right: AppSpacing.s6,
                             ),
-                            child: ChoiceChip(
-                              label: Text('$year'),
+                            child: _YearChip(
+                              year: year,
                               selected: year == _selectedYear,
-                              onSelected: (_) {
-                                setState(() => _selectedYear = year);
-                              },
-                              backgroundColor: AppColors.surface,
-                              selectedColor: AppColors.primary.withValues(
-                                alpha: 0.18,
-                              ),
-                              side: BorderSide(
-                                color: year == _selectedYear
-                                    ? AppColors.primary
-                                    : AppColors.border,
-                              ),
-                              labelStyle: AppTextStyles.bodyNormal.copyWith(
-                                color: year == _selectedYear
-                                    ? AppColors.primary
-                                    : AppColors.textMuted,
-                                fontWeight: FontWeight.w800,
-                              ),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(8),
-                              ),
-                              showCheckmark: false,
+                              onTap: () => setState(() => _selectedYear = year),
                             ),
                           ),
                       ],
@@ -354,6 +319,7 @@ class _PeriodPickerSheetState extends ConsumerState<_PeriodPickerSheet> {
                         icon: Pixel.calendartoday,
                         title: 'Current Period',
                         subtitle: 'Auto according to today\'s date',
+                        selected: selection is AutoPeriod,
                         onTap: () {
                           ref.read(selectedPeriodProvider.notifier).state =
                               const AutoPeriod();
@@ -363,6 +329,7 @@ class _PeriodPickerSheetState extends ConsumerState<_PeriodPickerSheet> {
                       _TerminalPeriodTile(
                         icon: Pixel.list,
                         title: 'All Periods',
+                        selected: selection is AllPeriods,
                         onTap: () {
                           ref.read(selectedPeriodProvider.notifier).state =
                               const AllPeriods();
@@ -373,6 +340,10 @@ class _PeriodPickerSheetState extends ConsumerState<_PeriodPickerSheet> {
                         _TerminalPeriodTile(
                           title: period.name,
                           subtitle: '${period.startDate} → ${period.endDate}',
+                          isCurrent: _isCurrentPeriod(period),
+                          selected:
+                              selection is SpecificPeriod &&
+                              selection.period.id == period.id,
                           onTap: () {
                             ref.read(selectedPeriodProvider.notifier).state =
                                 SpecificPeriod(period);
@@ -401,12 +372,76 @@ class _PeriodPickerSheetState extends ConsumerState<_PeriodPickerSheet> {
   }
 }
 
+class _CurrentBadge extends StatelessWidget {
+  const _CurrentBadge();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(
+        horizontal: AppSpacing.s6,
+        vertical: AppSpacing.s2,
+      ),
+      decoration: BoxDecoration(
+        color: AppColors.primary.withValues(alpha: 0.18),
+        border: Border.all(color: AppColors.primary),
+      ),
+      child: Text(
+        'CURRENT',
+        style: AppTextStyles.overlineSm.copyWith(color: AppColors.primary),
+      ),
+    );
+  }
+}
+
+class _YearChip extends StatelessWidget {
+  const _YearChip({
+    required this.year,
+    required this.selected,
+    required this.onTap,
+  });
+
+  final int year;
+  final bool selected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(
+          horizontal: AppSpacing.s12,
+          vertical: AppSpacing.s6,
+        ),
+        decoration: BoxDecoration(
+          color: selected
+              ? AppColors.primary.withValues(alpha: 0.18)
+              : AppColors.surface,
+          border: Border.all(
+            color: selected ? AppColors.primary : AppColors.border,
+          ),
+        ),
+        child: Text(
+          '$year',
+          style: AppTextStyles.bodyNormal.copyWith(
+            color: selected ? AppColors.primary : AppColors.textMuted,
+            fontWeight: FontWeight.w800,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 class _TerminalPeriodTile extends StatelessWidget {
   const _TerminalPeriodTile({
     required this.title,
     required this.onTap,
     this.subtitle,
     this.icon,
+    this.selected = false,
+    this.isCurrent = false,
   });
 
   final String title;
@@ -414,22 +449,28 @@ class _TerminalPeriodTile extends StatelessWidget {
   final IconData? icon;
   final VoidCallback onTap;
 
+  final bool selected;
+
+  final bool isCurrent;
+
   @override
   Widget build(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.only(bottom: AppSpacing.s8),
       child: InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(10),
         child: Container(
           padding: const EdgeInsets.symmetric(
             horizontal: AppSpacing.s12,
             vertical: AppSpacing.s12,
           ),
           decoration: BoxDecoration(
-            color: AppColors.surface,
-            borderRadius: BorderRadius.circular(10),
-            border: Border.all(color: AppColors.border),
+            color: selected
+                ? AppColors.primary.withValues(alpha: 0.12)
+                : AppColors.surface,
+            border: Border.all(
+              color: selected ? AppColors.primary : AppColors.border,
+            ),
           ),
           child: Row(
             children: [
@@ -450,12 +491,25 @@ class _TerminalPeriodTile extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
-                      title,
-                      style: AppTextStyles.bodyNormal.copyWith(
-                        color: AppColors.textSecondary,
-                        fontWeight: FontWeight.w800,
-                      ),
+                    Row(
+                      children: [
+                        Flexible(
+                          child: Text(
+                            title,
+                            overflow: TextOverflow.ellipsis,
+                            style: AppTextStyles.bodyNormal.copyWith(
+                              color: selected
+                                  ? AppColors.primary
+                                  : AppColors.textSecondary,
+                              fontWeight: FontWeight.w800,
+                            ),
+                          ),
+                        ),
+                        if (isCurrent) ...[
+                          const SizedBox(width: AppSpacing.s6),
+                          const _CurrentBadge(),
+                        ],
+                      ],
                     ),
                     if (subtitle != null) ...[
                       const SizedBox(height: AppSpacing.s4),
@@ -469,6 +523,14 @@ class _TerminalPeriodTile extends StatelessWidget {
                   ],
                 ),
               ),
+              if (selected) ...[
+                const SizedBox(width: AppSpacing.s10),
+                const Icon(
+                  Pixel.check,
+                  size: AppSizing.iconMd,
+                  color: AppColors.primary,
+                ),
+              ],
             ],
           ),
         ),
