@@ -16,13 +16,51 @@ import 'package:pixel_pocket/features/transactions/presentation/states/transacti
 /// decide what to do next (close a sheet, show an error snackbar, …).
 class TransactionsController
     extends AutoDisposeAsyncNotifier<List<TransactionModel>> {
+  /// Items fetched per page (infinite scroll).
+  static const int pageSize = 10;
+
+  int _page = 1;
+  bool _hasMore = true;
+  bool _loadingMore = false;
+
+  /// Whether another page may exist (last page returned a full [pageSize]).
+  bool get hasMore => _hasMore;
+
+  /// Whether a `loadMore()` fetch is in flight.
+  bool get isLoadingMore => _loadingMore;
+
   @override
-  Future<List<TransactionModel>> build() {
-    final filter = ref.watch(transactionFilterProvider);
-    return ref.watch(transactionServiceProvider).list(filter);
+  Future<List<TransactionModel>> build() async {
+    final range = ref.watch(rangeFilterProvider);
+    _page = 1;
+    final items = await _service.list(
+      range.toFilter(page: 1, limit: pageSize),
+    );
+    _hasMore = items.length == pageSize;
+    return items;
   }
 
   TransactionService get _service => ref.read(transactionServiceProvider);
+
+  /// Fetch the next page and append it to the current list. No-op when already
+  /// loading, when no more pages exist, or while the first page is still loading.
+  Future<void> loadMore() async {
+    if (_loadingMore || !_hasMore || !state.hasValue) return;
+    _loadingMore = true;
+    try {
+      final range = ref.read(rangeFilterProvider);
+      final next = await _service.list(
+        range.toFilter(page: _page + 1, limit: pageSize),
+      );
+      _page += 1;
+      _hasMore = next.length == pageSize;
+      state = AsyncData([...?state.valueOrNull, ...next]);
+    } catch (_) {
+      // Keep the current page; scrolling again retries.
+    } finally {
+      _loadingMore = false;
+    }
+  }
 
   Future<bool> create({
     required String transactionDate,
@@ -88,8 +126,14 @@ class TransactionsController
       state = AsyncError<List<TransactionModel>>(e, st).copyWithPrevious(state);
       return false;
     }
-    final filter = ref.read(transactionFilterProvider);
-    state = await AsyncValue.guard(() => _service.list(filter));
+    final range = ref.read(rangeFilterProvider);
+    _page = 1;
+    state = await AsyncValue.guard(
+      () => _service.list(range.toFilter(page: 1, limit: pageSize)),
+    );
+    if (!state.hasError) {
+      _hasMore = (state.valueOrNull?.length ?? 0) == pageSize;
+    }
     return !state.hasError;
   }
 }
