@@ -22,9 +22,6 @@ final dioProvider = Provider<Dio>((ref) => ref.watch(apiClientProvider).dio);
 
 class ApiClient {
   ApiClient() : dio = Dio(_baseOptions()) {
-    // Body logging is intentionally OFF: printing full request/response bodies
-    // through debugPrint (rate-limited) noticeably stalls larger responses like
-    // the by-category list in debug builds. Errors are still logged.
     dio.interceptors.add(
       LogInterceptor(
         request: false,
@@ -56,7 +53,6 @@ class ApiClient {
   static String _resolveBaseUrl() {
     if (kReleaseMode || !_useLocalDevServer) return ApiEndpoints.prodBaseUrl;
 
-    // Local dev server: pick the right host. Web has no Platform → localhost.
     if (kIsWeb) return ApiEndpoints.iosDevBaseUrl;
     if (Platform.isAndroid) return ApiEndpoints.androidDevBaseUrl;
     return ApiEndpoints.iosDevBaseUrl;
