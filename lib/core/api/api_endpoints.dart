@@ -26,10 +26,12 @@ class ApiEndpoints {
   // ---- Categories ----
   static const String categories = '/api/categories';
   static const String categoriesSeed = '/api/categories/seed';
+  static String categoryById(int id) => '/api/categories/$id';
 
   // ---- Salary periods ----
   static const String salaryPeriods = '/api/salary-periods';
   static const String salaryPeriodsSeed = '/api/salary-periods/seed';
+  static String salaryPeriodById(int id) => '/api/salary-periods/$id';
 
   // ---- Transactions ----
   static const String transactions = '/api/transactions';
