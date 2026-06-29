@@ -8,6 +8,7 @@ import 'package:pixel_pocket/core/theme/app_spacing.dart';
 import 'package:pixel_pocket/core/theme/app_text_style.dart';
 import 'package:pixel_pocket/core/widgets/pixel_bottom_sheet.dart';
 import 'package:pixel_pocket/core/widgets/pixel_button.dart';
+import 'package:pixel_pocket/core/widgets/pixel_field_label.dart';
 import 'package:pixelarticons/pixel.dart';
 import 'package:pixel_pocket/features/categories/domain/models/category_model.dart';
 import 'package:pixel_pocket/features/categories/presentation/states/category_state.dart';
@@ -198,7 +199,7 @@ class _TransactionFormSheetState extends ConsumerState<TransactionFormSheet> {
               ),
               const SizedBox(height: AppSpacing.section),
 
-              const _FieldLabel('AMOUNT'),
+              const PixelFieldLabel('AMOUNT'),
               TextFormField(
                 controller: _amountController,
                 keyboardType: TextInputType.number,
@@ -215,7 +216,7 @@ class _TransactionFormSheetState extends ConsumerState<TransactionFormSheet> {
               ),
               const SizedBox(height: AppSpacing.section),
 
-              const _FieldLabel('DATE'),
+              const PixelFieldLabel('DATE'),
               InkWell(
                 onTap: _pickDate,
                 child: InputDecorator(
@@ -227,7 +228,7 @@ class _TransactionFormSheetState extends ConsumerState<TransactionFormSheet> {
               ),
               const SizedBox(height: AppSpacing.section),
 
-              const _FieldLabel('CATEGORY'),
+              const PixelFieldLabel('CATEGORY'),
               categoriesAsync.when(
                 loading: () => const LinearProgressIndicator(),
                 error: (e, _) => Text(
@@ -267,7 +268,7 @@ class _TransactionFormSheetState extends ConsumerState<TransactionFormSheet> {
               ),
               const SizedBox(height: AppSpacing.section),
 
-              const _FieldLabel('DESCRIPTION (OPTIONAL)'),
+              const PixelFieldLabel('DESCRIPTION (OPTIONAL)'),
               TextFormField(
                 controller: _descriptionController,
                 maxLines: 2,
@@ -302,22 +303,5 @@ class _TransactionFormSheetState extends ConsumerState<TransactionFormSheet> {
       _type = type;
       _categoryId = null; // category list depends on type
     });
-  }
-}
-
-/// Small uppercase field label shown above each input, per the design system.
-class _FieldLabel extends StatelessWidget {
-  const _FieldLabel(this.text);
-  final String text;
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: AppSpacing.s8),
-      child: Text(
-        text,
-        style: AppTextStyles.overlineSm.copyWith(color: AppColors.textMuted),
-      ),
-    );
   }
 }
