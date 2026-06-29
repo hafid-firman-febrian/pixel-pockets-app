@@ -83,7 +83,8 @@ class TransactionScreen extends ConsumerWidget {
       child: ListView.separated(
         padding: const EdgeInsets.only(bottom: 96),
         itemCount: transactions.length,
-        separatorBuilder: (_, _) => const Divider(indent: 72, height: 1),
+        separatorBuilder: (_, _) =>
+            const Divider(height: 1, color: AppColors.border),
         itemBuilder: (context, index) {
           final tx = transactions[index];
           return Dismissible(

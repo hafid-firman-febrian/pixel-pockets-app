@@ -1,20 +1,33 @@
 import 'package:flutter/material.dart';
 import 'package:pixel_pocket/core/theme/app_color.dart';
+import 'package:pixel_pocket/core/theme/app_sizing.dart';
 import 'package:pixel_pocket/core/theme/app_spacing.dart';
 import 'package:pixel_pocket/core/theme/app_text_style.dart';
 import 'package:pixel_pocket/core/utils/currency_formatter.dart';
 import 'package:pixel_pocket/features/dashboard/domain/models/category_summary.dart';
+import 'package:pixelarticons/pixel.dart';
 import 'package:skeletonizer/skeletonizer.dart';
 
-
-
-class ExpensesByCategoryCard extends StatelessWidget {
+class ExpensesByCategoryCard extends StatefulWidget {
   const ExpensesByCategoryCard({super.key, required this.items});
 
   final List<CategorySummary> items;
 
   @override
+  State<ExpensesByCategoryCard> createState() => _ExpensesByCategoryCardState();
+}
+
+class _ExpensesByCategoryCardState extends State<ExpensesByCategoryCard> {
+  static const _collapsedCount = 3;
+
+  bool _expanded = false;
+
+  @override
   Widget build(BuildContext context) {
+    final items = widget.items;
+    final hidden = items.length - _collapsedCount;
+    final visible = _expanded ? items : items.take(_collapsedCount).toList();
+
     return Container(
       width: double.infinity,
       decoration: BoxDecoration(
@@ -26,10 +39,57 @@ class ExpensesByCategoryCard extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            for (var i = 0; i < items.length; i++) ...[
+            for (var i = 0; i < visible.length; i++) ...[
               if (i > 0) SizedBox(height: AppSpacing.section),
-              _CategoryRow(item: items[i]),
+              _CategoryRow(item: visible[i]),
             ],
+            if (hidden > 0) ...[
+              SizedBox(height: AppSpacing.section),
+              _MoreButton(
+                label: _expanded ? 'Show less' : 'Show $hidden more',
+                expanded: _expanded,
+                onTap: () => setState(() => _expanded = !_expanded),
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _MoreButton extends StatelessWidget {
+  const _MoreButton({
+    required this.label,
+    required this.expanded,
+    required this.onTap,
+  });
+
+  final String label;
+  final bool expanded;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: onTap,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: AppSpacing.s6),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Text(
+              label,
+              style: AppTextStyles.overlineLg.copyWith(
+                color: AppColors.primary,
+              ),
+            ),
+            const SizedBox(width: AppSpacing.s4),
+            Icon(
+              expanded ? Pixel.chevronup : Pixel.chevrondown,
+              size: AppSizing.iconSm,
+              color: AppColors.primary,
+            ),
           ],
         ),
       ),
@@ -99,7 +159,6 @@ class _CategoryRow extends StatelessWidget {
     );
   }
 }
-
 
 class ExpensesByCategoryCardSkeleton extends StatelessWidget {
   const ExpensesByCategoryCardSkeleton({super.key});
