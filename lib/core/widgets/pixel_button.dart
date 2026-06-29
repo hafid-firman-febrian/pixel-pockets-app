@@ -71,6 +71,7 @@ class PixelButton extends StatefulWidget {
     this.size = PixelButtonSize.md,
     this.isLoading = false,
     this.isFullWidth = false,
+    this.pressed = false,
   }) : assert(
          label != null || icon != null,
          'PixelButton butuh minimal label atau icon',
@@ -85,6 +86,10 @@ class PixelButton extends StatefulWidget {
   final PixelButtonSize size;
   final bool isLoading;
   final bool isFullWidth;
+
+  /// Force the pressed-in look (flat, no shadow) even while idle — used for the
+  /// active item of a toggle. Inactive items keep the normal raised shadow.
+  final bool pressed;
 
   @override
   State<PixelButton> createState() => _PixelButtonState();
@@ -249,8 +254,11 @@ class _PixelButtonState extends State<PixelButton>
   @override
   Widget build(BuildContext context) {
     final colors = _colors;
-    final depth = _pressed || _disabled ? 0.0 : _shadowDepth;
-    final translateY = _pressed && !_disabled ? _shadowDepth : 0.0;
+    // `pressed` (toggle-active) holds the button in the pressed-in look: flat,
+    // no shadow, shifted down into where the shadow would sit.
+    final held = _pressed || widget.pressed;
+    final depth = held || _disabled ? 0.0 : _shadowDepth;
+    final translateY = held && !_disabled ? _shadowDepth : 0.0;
 
     return GestureDetector(
       onTapDown: _onTapDown,

@@ -66,21 +66,81 @@ class AppTheme {
         thickness: 1,
         space: 1,
       ),
-      inputDecorationTheme: InputDecorationTheme(
+      // Pixel inputs: sharp corners + hard dark border, primary on focus, red
+      // on error — matching the cards/buttons rather than rounded Material.
+      inputDecorationTheme: const InputDecorationTheme(
         filled: true,
         fillColor: AppColors.surface,
         border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(color: AppColors.divider),
+          borderRadius: BorderRadius.zero,
+          borderSide: BorderSide(color: AppColors.border),
         ),
         enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(color: AppColors.divider),
+          borderRadius: BorderRadius.zero,
+          borderSide: BorderSide(color: AppColors.border),
         ),
         focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(color: AppColors.primary, width: 2),
+          borderRadius: BorderRadius.zero,
+          borderSide: BorderSide(color: AppColors.primary, width: 2),
         ),
+        errorBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.zero,
+          borderSide: BorderSide(color: AppColors.expense),
+        ),
+        focusedErrorBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.zero,
+          borderSide: BorderSide(color: AppColors.expense, width: 2),
+        ),
+      ),
+      // Dark, sharp-cornered calendar matching the pixel cards: yellow selected
+      // day, primary-outlined "today", hard border.
+      datePickerTheme: DatePickerThemeData(
+        backgroundColor: AppColors.surface,
+        surfaceTintColor: Colors.transparent,
+        elevation: 0,
+        shape: const RoundedRectangleBorder(
+          side: BorderSide(color: AppColors.border),
+          borderRadius: BorderRadius.zero,
+        ),
+        headerBackgroundColor: AppColors.surfaceVariant,
+        headerForegroundColor: AppColors.textPrimary,
+        weekdayStyle: const TextStyle(color: AppColors.textSecondary),
+        dayStyle: const TextStyle(color: AppColors.textPrimary),
+        dividerColor: AppColors.border,
+        dayForegroundColor: WidgetStateProperty.resolveWith((states) {
+          if (states.contains(WidgetState.selected)) return AppColors.textDark;
+          if (states.contains(WidgetState.disabled)) return AppColors.textMuted;
+          return AppColors.textPrimary;
+        }),
+        dayBackgroundColor: WidgetStateProperty.resolveWith((states) {
+          return states.contains(WidgetState.selected)
+              ? AppColors.primary
+              : null;
+        }),
+        dayShape: const WidgetStatePropertyAll(
+          RoundedRectangleBorder(borderRadius: BorderRadius.zero),
+        ),
+        todayForegroundColor: WidgetStateProperty.resolveWith((states) {
+          return states.contains(WidgetState.selected)
+              ? AppColors.textDark
+              : AppColors.primary;
+        }),
+        todayBackgroundColor: WidgetStateProperty.resolveWith((states) {
+          return states.contains(WidgetState.selected)
+              ? AppColors.primary
+              : null;
+        }),
+        todayBorder: const BorderSide(color: AppColors.primary),
+        yearForegroundColor: WidgetStateProperty.resolveWith((states) {
+          return states.contains(WidgetState.selected)
+              ? AppColors.textDark
+              : AppColors.textPrimary;
+        }),
+        yearBackgroundColor: WidgetStateProperty.resolveWith((states) {
+          return states.contains(WidgetState.selected)
+              ? AppColors.primary
+              : null;
+        }),
       ),
       elevatedButtonTheme: ElevatedButtonThemeData(
         style: ElevatedButton.styleFrom(
