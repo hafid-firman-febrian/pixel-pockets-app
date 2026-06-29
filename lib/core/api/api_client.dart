@@ -22,11 +22,14 @@ final dioProvider = Provider<Dio>((ref) => ref.watch(apiClientProvider).dio);
 
 class ApiClient {
   ApiClient() : dio = Dio(_baseOptions()) {
+    // Body logging is intentionally OFF: printing full request/response bodies
+    // through debugPrint (rate-limited) noticeably stalls larger responses like
+    // the by-category list in debug builds. Errors are still logged.
     dio.interceptors.add(
       LogInterceptor(
         request: false,
-        requestBody: kDebugMode,
-        responseBody: kDebugMode,
+        requestBody: false,
+        responseBody: false,
         requestHeader: false,
         responseHeader: false,
         error: true,
