@@ -7,6 +7,7 @@ import 'package:pixel_pocket/core/theme/app_sizing.dart';
 import 'package:pixel_pocket/core/theme/app_spacing.dart';
 import 'package:pixel_pocket/core/theme/app_text_style.dart';
 import 'package:pixel_pocket/core/widgets/pixel_button.dart';
+import 'package:pixel_pocket/core/widgets/pixel_card.dart';
 import 'package:pixel_pocket/core/widgets/pixel_confirm_dialog.dart';
 import 'package:pixel_pocket/features/auth/presentation/controllers/auth_controller.dart';
 import 'package:pixel_pocket/features/dashboard/domain/models/category_summary.dart';
@@ -177,23 +178,14 @@ class _RecentTransactionsSection extends StatelessWidget {
 
   Widget _buildContent() {
     if (recentAsync.hasError && !recentAsync.hasValue) {
-      return const Padding(
-        padding: AppSpacing.card,
-        child: Text('Failed to load transactions.'),
-      );
+      return const _CardMessage('Failed to load transactions.');
     }
     final items = recentAsync.valueOrNull;
     if (recentAsync.isLoading && items == null) {
       return const RecentTransactionsCardSkeleton();
     }
     if (items == null || items.isEmpty) {
-      return const Padding(
-        padding: AppSpacing.card,
-        child: Text(
-          'No transactions yet.',
-          style: TextStyle(color: AppColors.textMuted),
-        ),
-      );
+      return const _CardMessage('No transactions for this period.');
     }
     return RecentTransactionsCard(items: items);
   }
@@ -207,10 +199,7 @@ class _ExpensesByCategorySection extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (byCategoryAsync.hasError && !byCategoryAsync.hasValue) {
-      return const Padding(
-        padding: AppSpacing.card,
-        child: Text('Failed to load category breakdown.'),
-      );
+      return const _CardMessage('Failed to load category breakdown.');
     }
 
     final items = byCategoryAsync.valueOrNull;
@@ -218,14 +207,30 @@ class _ExpensesByCategorySection extends StatelessWidget {
       return const ExpensesByCategoryCardSkeleton();
     }
     if (items == null || items.isEmpty) {
-      return const Padding(
-        padding: AppSpacing.card,
-        child: Text(
-          'No expenses for this period.',
-          style: TextStyle(color: AppColors.textMuted),
-        ),
-      );
+      return const _CardMessage('No expenses for this period.');
     }
     return ExpensesByCategoryCard(items: items);
+  }
+}
+
+/// Empty/error message kept inside a card so the section looks the same whether
+/// it has data or not.
+class _CardMessage extends StatelessWidget {
+  const _CardMessage(this.text);
+
+  final String text;
+
+  @override
+  Widget build(BuildContext context) {
+    return PixelCard(
+      padding: AppSpacing.card,
+      child: Align(
+        alignment: Alignment.centerLeft,
+        child: Text(
+          text,
+          style: AppTextStyles.bodyNormal.copyWith(color: AppColors.textMuted),
+        ),
+      ),
+    );
   }
 }
