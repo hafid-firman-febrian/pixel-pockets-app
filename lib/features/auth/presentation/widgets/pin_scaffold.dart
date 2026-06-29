@@ -8,9 +8,6 @@ import 'package:pixel_pocket/features/auth/presentation/widgets/pin_dots.dart';
 import 'package:pixel_pocket/features/auth/presentation/widgets/pixel_pin_pad.dart';
 import 'package:pixelarticons/pixel.dart';
 
-/// Shared layout for the PIN screens: header icon + title + subtitle, the
-/// progress dots, and the keypad. Owns only the error-shake animation; the
-/// entry logic lives in the screens that use it.
 class PinScaffold extends StatefulWidget {
   const PinScaffold({
     super.key,
@@ -23,6 +20,8 @@ class PinScaffold extends StatefulWidget {
     this.icon = Pixel.lock,
     this.error = false,
     this.onBack,
+    this.keypadEnabled = true,
+    this.subtitleError = false,
   });
 
   final String title;
@@ -31,14 +30,16 @@ class PinScaffold extends StatefulWidget {
   final int length;
   final int filled;
 
-  /// Drives the shake + red dots. Toggle false→true to replay the animation.
   final bool error;
 
   final ValueChanged<String> onDigit;
   final VoidCallback onBackspace;
 
-  /// When set, shows a back button in the app bar.
   final VoidCallback? onBack;
+
+  final bool keypadEnabled;
+
+  final bool subtitleError;
 
   @override
   State<PinScaffold> createState() => _PinScaffoldState();
@@ -66,7 +67,6 @@ class _PinScaffoldState extends State<PinScaffold>
     super.dispose();
   }
 
-  /// Damped horizontal oscillation: a few swings that decay to zero.
   double _shakeOffset(double t) => sin(t * pi * 4) * 12 * (1 - t);
 
   @override
@@ -91,14 +91,24 @@ class _PinScaffoldState extends State<PinScaffold>
               Text(
                 widget.title,
                 textAlign: TextAlign.center,
-                style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w800),
+                style: const TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.w800,
+                ),
               ),
               if (widget.subtitle != null) ...[
                 SizedBox(height: AppSpacing.s8),
                 Text(
                   widget.subtitle!,
                   textAlign: TextAlign.center,
-                  style: const TextStyle(color: AppColors.textMuted),
+                  style: TextStyle(
+                    color: widget.subtitleError
+                        ? AppColors.expense
+                        : AppColors.textMuted,
+                    fontWeight: widget.subtitleError
+                        ? FontWeight.w700
+                        : FontWeight.normal,
+                  ),
                 ),
               ],
               SizedBox(height: AppSpacing.s32),
@@ -115,9 +125,14 @@ class _PinScaffoldState extends State<PinScaffold>
                 ),
               ),
               const Spacer(),
-              PixelPinPad(
-                onDigit: widget.onDigit,
-                onBackspace: widget.onBackspace,
+              AnimatedOpacity(
+                opacity: widget.keypadEnabled ? 1 : 0.4,
+                duration: const Duration(milliseconds: 200),
+                child: PixelPinPad(
+                  onDigit: widget.onDigit,
+                  onBackspace: widget.onBackspace,
+                  enabled: widget.keypadEnabled,
+                ),
               ),
               SizedBox(height: AppSpacing.s16),
             ],
