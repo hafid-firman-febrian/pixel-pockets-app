@@ -1,5 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:pixel_pocket/features/dashboard/application/services/dashboard_service.dart';
+import 'package:pixel_pocket/features/dashboard/domain/models/category_summary.dart';
 import 'package:pixel_pocket/features/dashboard/domain/models/transaction_summary.dart';
 import 'package:pixel_pocket/features/salary_period/domain/models/salary_period_model.dart';
 import 'package:pixel_pocket/features/salary_period/presentation/states/salary_period_state.dart';
@@ -45,6 +46,13 @@ final dashboardSummaryProvider = FutureProvider<TransactionSummary>((
 ) async {
   final period = await ref.watch(effectivePeriodProvider.future);
   return ref.watch(dashboardServiceProvider).summary(period?.id);
+});
+
+
+final expensesByCategoryProvider =
+    FutureProvider<List<CategorySummary>>((ref) async {
+  final period = await ref.watch(effectivePeriodProvider.future);
+  return ref.watch(dashboardServiceProvider).expensesByCategory(period?.id);
 });
 
 DateTime _todayFloor() {

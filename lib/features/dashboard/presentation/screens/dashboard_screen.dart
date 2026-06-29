@@ -6,9 +6,11 @@ import 'package:pixel_pocket/core/theme/app_text_style.dart';
 import 'package:pixel_pocket/core/widgets/pixel_button.dart';
 import 'package:pixel_pocket/core/widgets/pixel_confirm_dialog.dart';
 import 'package:pixel_pocket/features/auth/presentation/controllers/auth_controller.dart';
+import 'package:pixel_pocket/features/dashboard/domain/models/category_summary.dart';
 import 'package:pixel_pocket/features/dashboard/domain/models/transaction_summary.dart';
 import 'package:pixel_pocket/features/dashboard/presentation/states/dashboard_state.dart';
 import 'package:pixel_pocket/features/dashboard/presentation/screens/widgets/period_filter_card.dart';
+import 'package:pixel_pocket/features/dashboard/presentation/screens/widgets/expenses_by_category_card.dart';
 import 'package:pixel_pocket/features/dashboard/presentation/screens/widgets/transaction_summary_card.dart';
 import 'package:pixel_pocket/features/salary_period/presentation/states/salary_period_state.dart';
 import 'package:pixelarticons/pixel.dart';
@@ -27,6 +29,7 @@ class DashboardScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final summaryAsync = ref.watch(dashboardSummaryProvider);
+    final byCategoryAsync = ref.watch(expensesByCategoryProvider);
     return SafeArea(
       child: Scaffold(
         body: RefreshIndicator(
@@ -83,12 +86,7 @@ class DashboardScreen extends ConsumerWidget {
                       style: AppTextStyles.bodyNormal,
                     ),
                     SizedBox(height: AppSpacing.section),
-                    Container(
-                      decoration: BoxDecoration(
-                        color: AppColors.surface,
-                        border: Border.all(color: AppColors.border),
-                      ),
-                    ),
+                    _ExpensesByCategorySection(byCategoryAsync: byCategoryAsync),
                   ],
                 ),
               ),
@@ -115,6 +113,40 @@ class DashboardScreen extends ConsumerWidget {
   Future<void> _refresh(WidgetRef ref) async {
     ref.invalidate(salaryPeriodProvider);
     ref.invalidate(dashboardSummaryProvider);
+    ref.invalidate(expensesByCategoryProvider);
     await ref.read(dashboardSummaryProvider.future);
+  }
+}
+
+
+
+class _ExpensesByCategorySection extends StatelessWidget {
+  const _ExpensesByCategorySection({required this.byCategoryAsync});
+
+  final AsyncValue<List<CategorySummary>> byCategoryAsync;
+
+  @override
+  Widget build(BuildContext context) {
+    if (byCategoryAsync.hasError && !byCategoryAsync.hasValue) {
+      return const Padding(
+        padding: AppSpacing.card,
+        child: Text('Failed to load category breakdown.'),
+      );
+    }
+
+    final items = byCategoryAsync.valueOrNull;
+    if (byCategoryAsync.isLoading && items == null) {
+      return const ExpensesByCategoryCardSkeleton();
+    }
+    if (items == null || items.isEmpty) {
+      return const Padding(
+        padding: AppSpacing.card,
+        child: Text(
+          'No expenses for this period.',
+          style: TextStyle(color: AppColors.textMuted),
+        ),
+      );
+    }
+    return ExpensesByCategoryCard(items: items);
   }
 }
