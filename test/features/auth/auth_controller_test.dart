@@ -2,7 +2,10 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:pixel_pocket/core/error/failure.dart';
 import 'package:pixel_pocket/features/auth/application/services/auth_service.dart';
+import 'package:pixel_pocket/features/auth/application/services/pin_service.dart';
+import 'package:pixel_pocket/features/auth/data/datasources/pin_local_data_source.dart';
 import 'package:pixel_pocket/features/auth/data/repositories/auth_session_repository.dart';
+import 'package:pixel_pocket/features/auth/data/repositories/pin_repository.dart';
 import 'package:pixel_pocket/features/auth/domain/models/auth_user.dart';
 import 'package:pixel_pocket/features/auth/presentation/controllers/auth_controller.dart';
 import 'package:pixel_pocket/features/auth/presentation/states/auth_state.dart';
@@ -73,11 +76,27 @@ class _FakeSession implements AuthSessionRepository {
   Future<String> refresh() => throw UnimplementedError();
 }
 
-ProviderContainer _makeContainer(_FakeAuthService service, _FakeSession session) {
+/// Fake PinService whose `hasPin()` is fixed. The super repo is never touched
+/// because `hasPin` is overridden, so the dummy data source is never called.
+class _FakePinService extends PinService {
+  _FakePinService(this._hasPin) : super(PinRepository(PinLocalDataSource()));
+
+  final bool _hasPin;
+
+  @override
+  Future<bool> hasPin() async => _hasPin;
+}
+
+ProviderContainer _makeContainer(
+  _FakeAuthService service,
+  _FakeSession session, {
+  bool hasPin = false,
+}) {
   final container = ProviderContainer(
     overrides: [
       authServiceProvider.overrideWithValue(service),
       authSessionRepositoryProvider.overrideWithValue(session),
+      pinServiceProvider.overrideWithValue(_FakePinService(hasPin)),
     ],
   );
   addTearDown(container.dispose);
@@ -93,6 +112,36 @@ void main() {
 
     container.read(authControllerProvider); // triggers build()/_bootstrap()
     await _settle();
+
+    final state = container.read(authControllerProvider);
+    expect(state, isA<AuthSignedIn>());
+    expect((state as AuthSignedIn).user.displayName, 'Ammar');
+  });
+
+  test('bootstrap locks behind PIN when a token and a PIN both exist',
+      () async {
+    final service = _FakeAuthService();
+    final session = _FakeSession(accessToken: 'access', userName: 'Ammar');
+    final container = _makeContainer(service, session, hasPin: true);
+
+    container.read(authControllerProvider);
+    await _settle();
+
+    final state = container.read(authControllerProvider);
+    expect(state, isA<AuthLocked>());
+    expect((state as AuthLocked).user.displayName, 'Ammar');
+  });
+
+  test('unlock promotes a locked session to signed-in', () async {
+    final service = _FakeAuthService();
+    final session = _FakeSession(accessToken: 'access', userName: 'Ammar');
+    final container = _makeContainer(service, session, hasPin: true);
+
+    container.read(authControllerProvider);
+    await _settle();
+    expect(container.read(authControllerProvider), isA<AuthLocked>());
+
+    container.read(authControllerProvider.notifier).unlock();
 
     final state = container.read(authControllerProvider);
     expect(state, isA<AuthSignedIn>());
