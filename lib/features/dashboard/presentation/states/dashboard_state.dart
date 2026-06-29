@@ -25,6 +25,8 @@ final selectedPeriodProvider = StateProvider<PeriodSelection>(
   (ref) => const AutoPeriod(),
 );
 
+final balanceHiddenProvider = StateProvider<bool>((ref) => false);
+
 final effectivePeriodProvider = FutureProvider<SalaryPeriodModel?>((ref) async {
   final selection = ref.watch(selectedPeriodProvider);
   switch (selection) {
@@ -38,7 +40,6 @@ final effectivePeriodProvider = FutureProvider<SalaryPeriodModel?>((ref) async {
   }
 });
 
-/// Dashboard summary, difilter oleh period efektif.
 final dashboardSummaryProvider = FutureProvider<TransactionSummary>((
   ref,
 ) async {
@@ -46,14 +47,11 @@ final dashboardSummaryProvider = FutureProvider<TransactionSummary>((
   return ref.watch(dashboardServiceProvider).summary(period?.id);
 });
 
-/// Tanggal hari ini tanpa komponen jam (untuk perbandingan inklusif).
 DateTime _todayFloor() {
   final now = DateTime.now();
   return DateTime(now.year, now.month, now.day);
 }
 
-/// Period pertama yang rentang [startDate, endDate]-nya memuat [today]
-/// (inklusif), atau null bila tidak ada.
 SalaryPeriodModel? _periodForToday(
   List<SalaryPeriodModel> periods,
   DateTime today,

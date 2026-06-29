@@ -9,6 +9,7 @@ import 'package:pixel_pocket/features/dashboard/domain/models/transaction_summar
 import 'package:pixel_pocket/features/dashboard/presentation/states/dashboard_state.dart';
 import 'package:pixel_pocket/features/dashboard/presentation/screens/widgets/period_filter_card.dart';
 import 'package:pixel_pocket/features/dashboard/presentation/screens/widgets/transaction_summary_card.dart';
+import 'package:pixel_pocket/features/salary_period/presentation/states/salary_period_state.dart';
 import 'package:pixelarticons/pixel.dart';
 import 'package:skeletonizer/skeletonizer.dart';
 
@@ -27,9 +28,13 @@ class DashboardScreen extends ConsumerWidget {
     final summaryAsync = ref.watch(dashboardSummaryProvider);
     return SafeArea(
       child: Scaffold(
-        body: Padding(
-          padding: EdgeInsets.symmetric(vertical: AppSpacing.section),
-          child: Column(
+        body: RefreshIndicator(
+          onRefresh: () => _refresh(ref),
+          color: AppColors.primary,
+          backgroundColor: AppColors.surface,
+          child: ListView(
+            padding: EdgeInsets.symmetric(vertical: AppSpacing.section),
+            physics: const AlwaysScrollableScrollPhysics(),
             children: [
               Padding(
                 padding: AppSpacing.card,
@@ -91,5 +96,12 @@ class DashboardScreen extends ConsumerWidget {
         ),
       ),
     );
+  }
+
+  /// Refetch summary & salary periods saat user menarik ke bawah.
+  Future<void> _refresh(WidgetRef ref) async {
+    ref.invalidate(salaryPeriodProvider);
+    ref.invalidate(dashboardSummaryProvider);
+    await ref.read(dashboardSummaryProvider.future);
   }
 }
