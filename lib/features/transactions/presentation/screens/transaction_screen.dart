@@ -6,6 +6,7 @@ import 'package:pixel_pocket/core/theme/app_spacing.dart';
 import 'package:pixel_pocket/core/theme/app_text_style.dart';
 import 'package:pixel_pocket/core/widgets/pixel_button.dart';
 import 'package:pixel_pocket/features/auth/presentation/controllers/auth_controller.dart';
+import 'package:pixel_pocket/features/categories/presentation/states/category_state.dart';
 import 'package:pixel_pocket/features/transactions/domain/models/transaction_model.dart';
 import 'package:pixel_pocket/features/transactions/presentation/controllers/transaction_controller.dart';
 import 'package:pixel_pocket/features/transactions/presentation/screens/widgets/transaction_form_sheet.dart';
@@ -21,6 +22,9 @@ class TransactionScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final transactionsAsync = ref.watch(transactionsControllerProvider);
+    // Warm the categories cache while this screen is open so the add/edit form's
+    // category dropdown has data ready (no loading spinner on open).
+    ref.watch(categoriesProvider);
 
     return SafeArea(
       child: Scaffold(

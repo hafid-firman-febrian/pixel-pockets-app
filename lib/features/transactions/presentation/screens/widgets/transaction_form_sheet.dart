@@ -5,6 +5,9 @@ import 'package:intl/intl.dart';
 import 'package:pixel_pocket/core/error/failure.dart';
 import 'package:pixel_pocket/core/theme/app_color.dart';
 import 'package:pixel_pocket/core/theme/app_spacing.dart';
+import 'package:pixel_pocket/core/theme/app_text_style.dart';
+import 'package:pixel_pocket/core/widgets/pixel_bottom_sheet.dart';
+import 'package:pixel_pocket/core/widgets/pixel_button.dart';
 import 'package:pixel_pocket/features/categories/domain/models/category_model.dart';
 import 'package:pixel_pocket/features/categories/presentation/states/category_state.dart';
 import 'package:pixel_pocket/features/transactions/domain/models/transaction_model.dart';
@@ -31,10 +34,9 @@ class TransactionFormSheet extends ConsumerStatefulWidget {
     return showModalBottomSheet<bool>(
       context: context,
       isScrollControlled: true,
-      backgroundColor: AppColors.surface,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
+      backgroundColor: Colors.transparent,
+      barrierColor: AppColors.background.withValues(alpha: 0.72),
+      useSafeArea: true,
       builder: (_) => TransactionFormSheet(existing: existing),
     );
   }
@@ -152,10 +154,9 @@ class _TransactionFormSheetState extends ConsumerState<TransactionFormSheet> {
   Widget build(BuildContext context) {
     final categoriesAsync = ref.watch(categoriesProvider);
     final isSubmitting = ref.watch(transactionsControllerProvider).isLoading;
-    final viewInsets = MediaQuery.of(context).viewInsets.bottom;
 
-    return Padding(
-      padding: EdgeInsets.only(bottom: viewInsets),
+    return PixelBottomSheetFrame(
+      title: widget.isEditing ? 'EDIT TRANSACTION' : 'NEW TRANSACTION',
       child: SingleChildScrollView(
         padding: AppSpacing.form,
         child: Form(
@@ -164,50 +165,45 @@ class _TransactionFormSheetState extends ConsumerState<TransactionFormSheet> {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              Center(
-                child: Container(
-                  width: 40,
-                  height: AppSpacing.s4,
-                  margin: const EdgeInsets.only(bottom: AppSpacing.section),
-                  decoration: BoxDecoration(
-                    color: AppColors.divider,
-                    borderRadius: BorderRadius.circular(2),
+              // Expense / Income toggle (pixel buttons).
+              Row(
+                children: [
+                  Expanded(
+                    child: PixelButton(
+                      label: 'EXPENSE',
+                      isFullWidth: true,
+                      // Active → colored & flat (pressed-in); inactive → grey
+                      // with the normal raised shadow.
+                      variant: _type == 'expense'
+                          ? PixelButtonVariant.expense
+                          : PixelButtonVariant.surface,
+                      pressed: _type == 'expense',
+                      onPressed: () => _setType('expense'),
+                    ),
                   ),
-                ),
-              ),
-              Text(
-                widget.isEditing ? 'Edit Transaction' : 'New Transaction',
-                style: const TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
-              const SizedBox(height: AppSpacing.section),
-
-              
-              SegmentedButton<String>(
-                showSelectedIcon: false,
-                segments: const [
-                  ButtonSegment(value: 'expense', label: Text('Expense')),
-                  ButtonSegment(value: 'income', label: Text('Income')),
+                  const SizedBox(width: AppSpacing.s12),
+                  Expanded(
+                    child: PixelButton(
+                      label: 'INCOME',
+                      isFullWidth: true,
+                      variant: _type == 'income'
+                          ? PixelButtonVariant.income
+                          : PixelButtonVariant.surface,
+                      pressed: _type == 'income',
+                      onPressed: () => _setType('income'),
+                    ),
+                  ),
                 ],
-                selected: {_type},
-                onSelectionChanged: (s) => setState(() {
-                  _type = s.first;
-                  _categoryId = null; 
-                }),
               ),
               const SizedBox(height: AppSpacing.section),
 
-              
+              const _FieldLabel('AMOUNT'),
               TextFormField(
                 controller: _amountController,
                 keyboardType: TextInputType.number,
                 inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-                decoration: const InputDecoration(
-                  labelText: 'Amount',
-                  prefixText: 'Rp ',
-                ),
+                style: AppTextStyles.numericMd,
+                decoration: const InputDecoration(prefixText: 'Rp '),
                 validator: (v) {
                   final value = double.tryParse((v ?? '').trim());
                   if (value == null || value <= 0) {
@@ -218,7 +214,19 @@ class _TransactionFormSheetState extends ConsumerState<TransactionFormSheet> {
               ),
               const SizedBox(height: AppSpacing.section),
 
-              
+              const _FieldLabel('DATE'),
+              InkWell(
+                onTap: _pickDate,
+                child: InputDecorator(
+                  decoration: const InputDecoration(
+                    suffixIcon: Icon(Icons.calendar_today_rounded, size: 18),
+                  ),
+                  child: Text(_dateFormat.format(_date)),
+                ),
+              ),
+              const SizedBox(height: AppSpacing.section),
+
+              const _FieldLabel('CATEGORY'),
               categoriesAsync.when(
                 loading: () => const LinearProgressIndicator(),
                 error: (e, _) => Text(
@@ -234,7 +242,6 @@ class _TransactionFormSheetState extends ConsumerState<TransactionFormSheet> {
                   return DropdownButtonFormField<int>(
                     initialValue: value,
                     isExpanded: true,
-                    decoration: const InputDecoration(labelText: 'Category'),
                     items: options
                         .map(
                           (c) => DropdownMenuItem(
@@ -244,10 +251,7 @@ class _TransactionFormSheetState extends ConsumerState<TransactionFormSheet> {
                                 Container(
                                   width: 14,
                                   height: 14,
-                                  decoration: BoxDecoration(
-                                    color: AppColors.fromHex(c.color),
-                                    shape: BoxShape.circle,
-                                  ),
+                                  color: AppColors.fromHex(c.color),
                                 ),
                                 const SizedBox(width: 10),
                                 Text(c.name),
@@ -262,46 +266,56 @@ class _TransactionFormSheetState extends ConsumerState<TransactionFormSheet> {
               ),
               const SizedBox(height: AppSpacing.section),
 
-              
-              InkWell(
-                onTap: _pickDate,
-                borderRadius: BorderRadius.circular(12),
-                child: InputDecorator(
-                  decoration: const InputDecoration(
-                    labelText: 'Date',
-                    suffixIcon: Icon(Icons.calendar_today_rounded, size: 18),
-                  ),
-                  child: Text(_dateFormat.format(_date)),
-                ),
-              ),
-              const SizedBox(height: AppSpacing.section),
-
-              
+              const _FieldLabel('DESCRIPTION (OPTIONAL)'),
               TextFormField(
                 controller: _descriptionController,
                 maxLines: 2,
-                decoration: const InputDecoration(
-                  labelText: 'Description (optional)',
-                ),
               ),
               const SizedBox(height: AppSpacing.s24),
 
-              ElevatedButton(
+              PixelButton(
+                label: widget.isEditing ? 'SAVE CHANGES' : 'SAVE TRANSACTION',
+                isFullWidth: true,
+                isLoading: isSubmitting,
                 onPressed: isSubmitting ? null : _submit,
-                child: isSubmitting
-                    ? const SizedBox(
-                        height: 20,
-                        width: 20,
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2,
-                          color: Colors.white,
-                        ),
-                      )
-                    : Text(widget.isEditing ? 'Save Changes' : 'Save'),
+              ),
+              const SizedBox(height: AppSpacing.s12),
+              PixelButton(
+                label: 'CANCEL',
+                variant: PixelButtonVariant.secondary,
+                isFullWidth: true,
+                onPressed: isSubmitting
+                    ? null
+                    : () => Navigator.of(context).pop(),
               ),
             ],
           ),
         ),
+      ),
+    );
+  }
+
+  void _setType(String type) {
+    if (_type == type) return;
+    setState(() {
+      _type = type;
+      _categoryId = null; // category list depends on type
+    });
+  }
+}
+
+/// Small uppercase field label shown above each input, per the design system.
+class _FieldLabel extends StatelessWidget {
+  const _FieldLabel(this.text);
+  final String text;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: AppSpacing.s8),
+      child: Text(
+        text,
+        style: AppTextStyles.overlineSm.copyWith(color: AppColors.textMuted),
       ),
     );
   }
