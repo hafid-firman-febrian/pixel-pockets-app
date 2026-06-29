@@ -8,6 +8,7 @@ import 'package:pixel_pocket/core/theme/app_spacing.dart';
 import 'package:pixel_pocket/core/theme/app_text_style.dart';
 import 'package:pixel_pocket/core/widgets/pixel_bottom_sheet.dart';
 import 'package:pixel_pocket/core/widgets/pixel_button.dart';
+import 'package:pixelarticons/pixel.dart';
 import 'package:pixel_pocket/features/categories/domain/models/category_model.dart';
 import 'package:pixel_pocket/features/categories/presentation/states/category_state.dart';
 import 'package:pixel_pocket/features/transactions/domain/models/transaction_model.dart';
@@ -219,7 +220,7 @@ class _TransactionFormSheetState extends ConsumerState<TransactionFormSheet> {
                 onTap: _pickDate,
                 child: InputDecorator(
                   decoration: const InputDecoration(
-                    suffixIcon: Icon(Icons.calendar_today_rounded, size: 18),
+                    suffixIcon: Icon(Pixel.calendar, size: 18),
                   ),
                   child: Text(_dateFormat.format(_date)),
                 ),
