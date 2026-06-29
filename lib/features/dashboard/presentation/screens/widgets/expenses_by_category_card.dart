@@ -4,6 +4,7 @@ import 'package:pixel_pocket/core/theme/app_sizing.dart';
 import 'package:pixel_pocket/core/theme/app_spacing.dart';
 import 'package:pixel_pocket/core/theme/app_text_style.dart';
 import 'package:pixel_pocket/core/utils/currency_formatter.dart';
+import 'package:pixel_pocket/core/widgets/pixel_card.dart';
 import 'package:pixel_pocket/features/dashboard/domain/models/category_summary.dart';
 import 'package:pixelarticons/pixel.dart';
 import 'package:skeletonizer/skeletonizer.dart';
@@ -28,30 +29,28 @@ class _ExpensesByCategoryCardState extends State<ExpensesByCategoryCard> {
     final hidden = items.length - _collapsedCount;
     final visible = _expanded ? items : items.take(_collapsedCount).toList();
 
-    return Container(
+    return SizedBox(
       width: double.infinity,
-      decoration: BoxDecoration(
-        color: AppColors.surface,
-        border: Border.all(color: AppColors.border),
-      ),
-      child: Padding(
-        padding: AppSpacing.card,
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            for (var i = 0; i < visible.length; i++) ...[
-              if (i > 0) SizedBox(height: AppSpacing.section),
-              _CategoryRow(item: visible[i]),
+      child: PixelCard(
+        child: Padding(
+          padding: AppSpacing.card,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              for (var i = 0; i < visible.length; i++) ...[
+                if (i > 0) SizedBox(height: AppSpacing.section),
+                _CategoryRow(item: visible[i]),
+              ],
+              if (hidden > 0) ...[
+                SizedBox(height: AppSpacing.section),
+                _MoreButton(
+                  label: _expanded ? 'Show less' : 'Show $hidden more',
+                  expanded: _expanded,
+                  onTap: () => setState(() => _expanded = !_expanded),
+                ),
+              ],
             ],
-            if (hidden > 0) ...[
-              SizedBox(height: AppSpacing.section),
-              _MoreButton(
-                label: _expanded ? 'Show less' : 'Show $hidden more',
-                expanded: _expanded,
-                onTap: () => setState(() => _expanded = !_expanded),
-              ),
-            ],
-          ],
+          ),
         ),
       ),
     );
