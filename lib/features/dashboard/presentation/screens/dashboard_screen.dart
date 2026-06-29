@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
+import 'package:pixel_pocket/core/router/app_router.dart';
 import 'package:pixel_pocket/core/theme/app_color.dart';
+import 'package:pixel_pocket/core/theme/app_sizing.dart';
 import 'package:pixel_pocket/core/theme/app_spacing.dart';
 import 'package:pixel_pocket/core/theme/app_text_style.dart';
 import 'package:pixel_pocket/core/widgets/pixel_button.dart';
@@ -11,7 +14,9 @@ import 'package:pixel_pocket/features/dashboard/domain/models/transaction_summar
 import 'package:pixel_pocket/features/dashboard/presentation/states/dashboard_state.dart';
 import 'package:pixel_pocket/features/dashboard/presentation/screens/widgets/period_filter_card.dart';
 import 'package:pixel_pocket/features/dashboard/presentation/screens/widgets/expenses_by_category_card.dart';
+import 'package:pixel_pocket/features/dashboard/presentation/screens/widgets/recent_transactions_card.dart';
 import 'package:pixel_pocket/features/dashboard/presentation/screens/widgets/transaction_summary_card.dart';
+import 'package:pixel_pocket/features/transactions/domain/models/transaction_model.dart';
 import 'package:pixel_pocket/features/salary_period/presentation/states/salary_period_state.dart';
 import 'package:pixelarticons/pixel.dart';
 import 'package:skeletonizer/skeletonizer.dart';
@@ -30,6 +35,7 @@ class DashboardScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final summaryAsync = ref.watch(dashboardSummaryProvider);
     final byCategoryAsync = ref.watch(expensesByCategoryProvider);
+    final recentAsync = ref.watch(recentTransactionsProvider);
     return SafeArea(
       child: Scaffold(
         body: RefreshIndicator(
@@ -86,7 +92,11 @@ class DashboardScreen extends ConsumerWidget {
                       style: AppTextStyles.bodyNormal,
                     ),
                     SizedBox(height: AppSpacing.section),
-                    _ExpensesByCategorySection(byCategoryAsync: byCategoryAsync),
+                    _ExpensesByCategorySection(
+                      byCategoryAsync: byCategoryAsync,
+                    ),
+                    SizedBox(height: AppSpacing.section),
+                    _RecentTransactionsSection(recentAsync: recentAsync),
                   ],
                 ),
               ),
@@ -114,11 +124,80 @@ class DashboardScreen extends ConsumerWidget {
     ref.invalidate(salaryPeriodProvider);
     ref.invalidate(dashboardSummaryProvider);
     ref.invalidate(expensesByCategoryProvider);
+    ref.invalidate(recentTransactionsProvider);
     await ref.read(dashboardSummaryProvider.future);
   }
 }
 
+/// Header row ("RECENT" + Show all) plus the recent-transactions list with
+/// loading / error / empty states. "Show all" switches to the Transactions tab.
+class _RecentTransactionsSection extends StatelessWidget {
+  const _RecentTransactionsSection({required this.recentAsync});
 
+  final AsyncValue<List<TransactionModel>> recentAsync;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text('RECENT', style: AppTextStyles.bodyNormal),
+            InkWell(
+              onTap: () => context.go(AppRoutes.transactions),
+              child: Padding(
+                padding: const EdgeInsets.all(AppSpacing.s4),
+                child: Row(
+                  children: [
+                    Text(
+                      'SEE ALL',
+                      style: AppTextStyles.overlineLg.copyWith(
+                        color: AppColors.primary,
+                      ),
+                    ),
+                    const SizedBox(width: AppSpacing.s4),
+                    const Icon(
+                      Pixel.chevronright,
+                      size: AppSizing.iconSm,
+                      color: AppColors.primary,
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
+        SizedBox(height: AppSpacing.s8),
+        _buildContent(),
+      ],
+    );
+  }
+
+  Widget _buildContent() {
+    if (recentAsync.hasError && !recentAsync.hasValue) {
+      return const Padding(
+        padding: AppSpacing.card,
+        child: Text('Failed to load transactions.'),
+      );
+    }
+    final items = recentAsync.valueOrNull;
+    if (recentAsync.isLoading && items == null) {
+      return const RecentTransactionsCardSkeleton();
+    }
+    if (items == null || items.isEmpty) {
+      return const Padding(
+        padding: AppSpacing.card,
+        child: Text(
+          'No transactions yet.',
+          style: TextStyle(color: AppColors.textMuted),
+        ),
+      );
+    }
+    return RecentTransactionsCard(items: items);
+  }
+}
 
 class _ExpensesByCategorySection extends StatelessWidget {
   const _ExpensesByCategorySection({required this.byCategoryAsync});
