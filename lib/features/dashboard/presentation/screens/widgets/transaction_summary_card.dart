@@ -1,18 +1,30 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:pixel_pocket/core/theme/app_color.dart';
 import 'package:pixel_pocket/core/theme/app_spacing.dart';
 import 'package:pixel_pocket/core/theme/app_text_style.dart';
 import 'package:pixel_pocket/core/utils/currency_formatter.dart';
 import 'package:pixel_pocket/features/dashboard/domain/models/transaction_summary.dart';
+import 'package:pixel_pocket/features/dashboard/presentation/states/dashboard_state.dart';
+import 'package:pixelarticons/pixel.dart';
 import 'package:skeletonizer/skeletonizer.dart';
 
-class TransactionSummaryCard extends StatelessWidget {
+/// Mask asterisk tetap saat nominal disembunyikan (tidak membocorkan panjang angka).
+const _kMask = '******';
+
+class TransactionSummaryCard extends ConsumerWidget {
   const TransactionSummaryCard({super.key, required this.summary});
 
   final TransactionSummary summary;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final isHidden = ref.watch(balanceHiddenProvider);
+    final isNegative = summary.balance < 0;
+    // Saat hidden, jangan bocorkan status minus lewat warna/tanda.
+    final balanceColor = (!isHidden && isNegative)
+        ? AppColors.expense
+        : AppColors.textPrimary;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
 
@@ -45,26 +57,55 @@ class TransactionSummaryCard extends StatelessWidget {
                     ),
                   ),
                   SizedBox(height: AppSpacing.item),
-                  Text.rich(
-                    TextSpan(
-                      children: [
-                        TextSpan(
-                          text: 'Rp ',
-                          style: AppTextStyles.bodyNormal.copyWith(
-                            color: AppColors.textPrimary,
-                            fontWeight: FontWeight.w900,
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    children: [
+                      Flexible(
+                        child: Text.rich(
+                          TextSpan(
+                            children: [
+                              TextSpan(
+                                text: (!isHidden && isNegative)
+                                    ? '-Rp '
+                                    : 'Rp ',
+                                style: AppTextStyles.bodyNormal.copyWith(
+                                  color: balanceColor,
+                                  fontWeight: FontWeight.w900,
+                                ),
+                              ),
+                              TextSpan(
+                                text: isHidden
+                                    ? _kMask
+                                    : CurrencyFormatter.formatWhileTyping(
+                                        CurrencyFormatter.format(
+                                          summary.balance,
+                                        ),
+                                      ),
+                                style: AppTextStyles.numericXl.copyWith(
+                                  color: balanceColor,
+                                ),
+                              ),
+                            ],
                           ),
                         ),
-                        TextSpan(
-                          text: CurrencyFormatter.formatWhileTyping(
-                            CurrencyFormatter.format(summary.balance),
-                          ),
-                          style: AppTextStyles.numericXl.copyWith(
-                            color: AppColors.textPrimary,
+                      ),
+                      Skeleton.keep(
+                        child: InkWell(
+                          onTap: () => ref
+                              .read(balanceHiddenProvider.notifier)
+                              .update((hidden) => !hidden),
+                          child: Padding(
+                            padding: EdgeInsets.all(AppSpacing.s4),
+                            child: Icon(
+                              isHidden ? Pixel.eyeclosed : Pixel.eye,
+                              size: 18,
+                              color: AppColors.textSecondary,
+                            ),
                           ),
                         ),
-                      ],
-                    ),
+                      ),
+                    ],
                   ),
                   SizedBox(height: AppSpacing.section),
                   Skeleton.keep(child: Divider(color: AppColors.border)),
@@ -150,14 +191,15 @@ class TransactionSummaryCard extends StatelessWidget {
   }
 }
 
-class _TotalTransaction extends StatelessWidget {
+class _TotalTransaction extends ConsumerWidget {
   const _TotalTransaction({required this.summary, required this.isIncome});
 
   final TransactionSummary summary;
   final bool isIncome;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final isHidden = ref.watch(balanceHiddenProvider);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -181,9 +223,11 @@ class _TotalTransaction extends StatelessWidget {
         ),
         SizedBox(height: AppSpacing.s4),
         Text(
-          CurrencyFormatter.format(
-            isIncome ? summary.totalIncome : summary.totalExpense,
-          ),
+          isHidden
+              ? 'Rp $_kMask'
+              : CurrencyFormatter.format(
+                  isIncome ? summary.totalIncome : summary.totalExpense,
+                ),
           style: AppTextStyles.bodyNormal.copyWith(
             color: isIncome ? AppColors.income : AppColors.expense,
             fontWeight: FontWeight.w900,
