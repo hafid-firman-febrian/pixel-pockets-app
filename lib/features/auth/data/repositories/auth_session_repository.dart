@@ -42,7 +42,7 @@ class AuthSessionRepository implements SessionGateway {
     final rt = await _store.readRefreshToken();
     if (rt == null) {
       throw const Failure(
-        message: 'Sesi habis. Silakan login lagi.',
+        message: 'Session expired. Please sign in again.',
         statusCode: 401,
       );
     }

@@ -103,7 +103,7 @@ class DashboardScreen extends ConsumerWidget {
     final confirmed = await showPixelConfirm(
       context,
       title: 'Logout?',
-      message: 'Sesi akan diakhiri dan kamu perlu login lagi untuk masuk.',
+      message: 'Your session will end and you\'ll need to sign in again.',
       confirmLabel: 'Logout',
       confirmVariant: PixelButtonVariant.danger,
       icon: Pixel.logout,

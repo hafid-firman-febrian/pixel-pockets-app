@@ -4,14 +4,9 @@ import 'package:pixel_pocket/features/auth/presentation/controllers/pin_controll
 import 'package:pixel_pocket/features/auth/presentation/widgets/pin_scaffold.dart';
 import 'package:pixelarticons/pixel.dart';
 
-/// Two-step PIN creation: enter a 4-digit PIN, then confirm it. On a match the
-/// PIN is saved via [PinController]; on a mismatch the dots shake and the flow
-/// restarts. UI only — persistence and hashing live in the service.
 class SetPinScreen extends ConsumerStatefulWidget {
   const SetPinScreen({super.key, this.onComplete});
 
-  /// Called after the PIN is saved. When routed post-login the router redirects
-  /// automatically (pin status flips to true), so this is optional.
   final VoidCallback? onComplete;
 
   @override
@@ -21,7 +16,6 @@ class SetPinScreen extends ConsumerStatefulWidget {
 class _SetPinScreenState extends ConsumerState<SetPinScreen> {
   static const _pinLength = 4;
 
-  /// The first entry, held until the confirm step. Null = still on step 1.
   String? _firstEntry;
   String _input = '';
   bool _error = false;
@@ -47,7 +41,6 @@ class _SetPinScreenState extends ConsumerState<SetPinScreen> {
   }
 
   Future<void> _onFilled() async {
-    // Step 1 → remember and move to confirm.
     if (!_confirming) {
       setState(() {
         _firstEntry = _input;
@@ -56,7 +49,6 @@ class _SetPinScreenState extends ConsumerState<SetPinScreen> {
       return;
     }
 
-    // Step 2 → must match the first entry.
     if (_input != _firstEntry) {
       setState(() {
         _error = true;
@@ -76,10 +68,10 @@ class _SetPinScreenState extends ConsumerState<SetPinScreen> {
   Widget build(BuildContext context) {
     return PinScaffold(
       icon: Pixel.lockopen,
-      title: _confirming ? 'Konfirmasi PIN' : 'Buat PIN',
+      title: _confirming ? 'Confirm PIN' : 'Create PIN',
       subtitle: _confirming
-          ? 'Masukkan ulang PIN kamu'
-          : 'Buat 4 digit PIN untuk kunci cepat',
+          ? 'Re-enter your PIN'
+          : 'Create a 4-digit PIN for quick lock',
       length: _pinLength,
       filled: _input.length,
       error: _error,

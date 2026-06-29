@@ -93,12 +93,12 @@ class _UnlockPinScreenState extends ConsumerState<UnlockPinScreen> {
   Widget build(BuildContext context) {
     final remaining = _maxAttempts - _wrongAttempts;
     final subtitle = _locked
-        ? 'Terlalu banyak percobaan. Coba lagi dalam ${_lockSecondsLeft}s'
+        ? 'Too many attempts. Try again in ${_lockSecondsLeft}s'
         : _wrongAttempts == 0
-        ? 'Buka kunci Pixel Pocket'
-        : 'PIN salah — sisa $remaining percobaan';
+        ? 'Unlock Pixel Pocket'
+        : 'Wrong PIN — $remaining attempts left';
     return PinScaffold(
-      title: 'Masukkan PIN',
+      title: 'Enter PIN',
       subtitle: subtitle,
       length: _pinLength,
       filled: _input.length,
