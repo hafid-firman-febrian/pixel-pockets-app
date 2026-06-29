@@ -3,6 +3,7 @@ import 'package:pixel_pocket/core/theme/app_color.dart';
 import 'package:pixel_pocket/core/theme/app_spacing.dart';
 import 'package:pixel_pocket/core/theme/app_text_style.dart';
 import 'package:pixel_pocket/core/widgets/pixel_button.dart';
+import 'package:pixel_pocket/core/widgets/pixel_card.dart';
 
 
 Future<bool> showPixelConfirm(
@@ -52,21 +53,10 @@ class _PixelConfirmDialog extends StatelessWidget {
       backgroundColor: Colors.transparent,
       elevation: 0,
       insetPadding: const EdgeInsets.symmetric(horizontal: AppSpacing.s32),
-      child: Container(
-        decoration: BoxDecoration(
-          color: AppColors.surface,
-          border: Border.all(color: AppColors.border),
-          boxShadow: const [
-            BoxShadow(
-              color: AppColors.border,
-              offset: Offset(0, 5),
-              blurRadius: 0,
-            ),
-          ],
-        ),
-        child: Padding(
-          padding: AppSpacing.card,
-          child: Column(
+      child: PixelCard(
+        elevated: true,
+        padding: AppSpacing.card,
+        child: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -113,7 +103,6 @@ class _PixelConfirmDialog extends StatelessWidget {
             ],
           ),
         ),
-      ),
     );
   }
 }

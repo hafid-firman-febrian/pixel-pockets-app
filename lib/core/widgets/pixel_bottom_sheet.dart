@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:pixel_pocket/core/theme/app_color.dart';
 import 'package:pixel_pocket/core/theme/app_spacing.dart';
 import 'package:pixel_pocket/core/theme/app_text_style.dart';
+import 'package:pixel_pocket/core/widgets/pixel_card.dart';
 import 'package:pixelarticons/pixel.dart';
 
 /// Bottom-sheet frame in the pixel-card style — surface fill, hard border, 3D
@@ -34,26 +35,20 @@ class PixelBottomSheetFrame extends StatelessWidget {
           AppSpacing.s16,
           AppSpacing.s16 + keyboard,
         ),
-        child: Container(
-          width: size.width,
+        child: ConstrainedBox(
           constraints: BoxConstraints(maxHeight: size.height * 0.85),
-          decoration: BoxDecoration(
-            color: AppColors.surface,
-            border: Border.all(color: AppColors.border),
-            boxShadow: const [
-              BoxShadow(
-                color: AppColors.border,
-                offset: Offset(0, 5),
-                blurRadius: 0,
+          child: SizedBox(
+            width: double.infinity,
+            child: PixelCard(
+              elevated: true,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  _PixelSheetHeader(title: title),
+                  Flexible(child: child),
+                ],
               ),
-            ],
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              _PixelSheetHeader(title: title),
-              Flexible(child: child),
-            ],
+            ),
           ),
         ),
       ),
