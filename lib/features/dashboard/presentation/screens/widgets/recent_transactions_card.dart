@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:pixel_pocket/core/theme/app_color.dart';
+import 'package:pixel_pocket/core/widgets/pixel_card.dart';
 import 'package:pixel_pocket/features/transactions/domain/models/transaction_model.dart';
 import 'package:pixel_pocket/features/transactions/presentation/screens/widgets/transaction_list_item.dart';
 import 'package:skeletonizer/skeletonizer.dart';
@@ -13,19 +14,17 @@ class RecentTransactionsCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
+    return SizedBox(
       width: double.infinity,
-      decoration: BoxDecoration(
-        color: AppColors.surface,
-        border: Border.all(color: AppColors.border),
-      ),
-      child: Column(
-        children: [
-          for (var i = 0; i < items.length; i++) ...[
-            if (i > 0) const Divider(height: 1, color: AppColors.border),
-            TransactionListItem(transaction: items[i]),
+      child: PixelCard(
+        child: Column(
+          children: [
+            for (var i = 0; i < items.length; i++) ...[
+              if (i > 0) const Divider(height: 1, color: AppColors.border),
+              TransactionListItem(transaction: items[i]),
+            ],
           ],
-        ],
+        ),
       ),
     );
   }
