@@ -27,6 +27,46 @@ class CategoryRepository {
       throw Failure.fromDio(e);
     }
   }
+
+  Future<CategoryModel> create({
+    required String name,
+    required String color,
+    required String type,
+  }) async {
+    try {
+      final dto = await _remote.create(name: name, color: color, type: type);
+      return dto.toDomain();
+    } on DioException catch (e) {
+      throw Failure.fromDio(e);
+    }
+  }
+
+  Future<CategoryModel> update({
+    required int id,
+    required String name,
+    required String color,
+    required String type,
+  }) async {
+    try {
+      final dto = await _remote.update(
+        id: id,
+        name: name,
+        color: color,
+        type: type,
+      );
+      return dto.toDomain();
+    } on DioException catch (e) {
+      throw Failure.fromDio(e);
+    }
+  }
+
+  Future<void> delete(int id) async {
+    try {
+      await _remote.delete(id);
+    } on DioException catch (e) {
+      throw Failure.fromDio(e);
+    }
+  }
 }
 
 final categoryRepositoryProvider = Provider<CategoryRepository>(
