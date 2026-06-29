@@ -28,9 +28,10 @@ class TransactionScreen extends ConsumerWidget {
 
     return SafeArea(
       child: Scaffold(
-        floatingActionButton: FloatingActionButton(
+        floatingActionButton: PixelButton(
+          icon: Pixel.plus,
+          size: PixelButtonSize.lg,
           onPressed: () => TransactionFormSheet.show(context),
-          child: const Icon(Pixel.plus),
         ),
         body: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
