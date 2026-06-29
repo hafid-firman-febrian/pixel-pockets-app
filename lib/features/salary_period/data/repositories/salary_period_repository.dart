@@ -17,6 +17,54 @@ class SalaryPeriodRepository {
       throw Failure.fromDio(e);
     }
   }
+
+  Future<SalaryPeriodModel> create({
+    required String name,
+    required String startDate,
+    required String endDate,
+    double? salaryAmount,
+  }) async {
+    try {
+      final dto = await _remote.create(
+        name: name,
+        startDate: startDate,
+        endDate: endDate,
+        salaryAmount: salaryAmount,
+      );
+      return dto.toDomain();
+    } on DioException catch (e) {
+      throw Failure.fromDio(e);
+    }
+  }
+
+  Future<SalaryPeriodModel> update({
+    required int id,
+    required String name,
+    required String startDate,
+    required String endDate,
+    double? salaryAmount,
+  }) async {
+    try {
+      final dto = await _remote.update(
+        id: id,
+        name: name,
+        startDate: startDate,
+        endDate: endDate,
+        salaryAmount: salaryAmount,
+      );
+      return dto.toDomain();
+    } on DioException catch (e) {
+      throw Failure.fromDio(e);
+    }
+  }
+
+  Future<void> delete(int id) async {
+    try {
+      await _remote.delete(id);
+    } on DioException catch (e) {
+      throw Failure.fromDio(e);
+    }
+  }
 }
 
 final salaryPeriodRepositoryProvider = Provider<SalaryPeriodRepository>(
