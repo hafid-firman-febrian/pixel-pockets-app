@@ -31,7 +31,7 @@ class AuthRepository {
     } on Failure {
       rethrow;
     } catch (e) {
-      throw Failure(message: 'Gagal masuk: $e');
+      throw Failure(message: 'Sign-in failed: $e');
     }
   }
 

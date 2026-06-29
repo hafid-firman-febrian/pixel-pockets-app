@@ -10,20 +10,20 @@ import 'package:pixel_pocket/features/categories/presentation/states/category_st
 import 'package:pixel_pocket/features/transactions/domain/models/transaction_model.dart';
 import 'package:pixel_pocket/features/transactions/presentation/controllers/transaction_controller.dart';
 
-/// Bottom-sheet form for creating or editing a transaction.
-///
-/// Form/UI state (controllers, selections) lives here because it is
-/// genuinely view state. The actual write goes through
-/// [TransactionController]; this widget never touches Dio or JSON.
+
+
+
+
+
 class TransactionFormSheet extends ConsumerStatefulWidget {
   const TransactionFormSheet({super.key, this.existing});
 
-  /// When non-null the form is in edit mode.
+  
   final TransactionModel? existing;
 
   bool get isEditing => existing != null;
 
-  /// Opens the sheet. Resolves to `true` when a transaction was saved.
+  
   static Future<bool?> show(
     BuildContext context, {
     TransactionModel? existing,
@@ -51,7 +51,7 @@ class _TransactionFormSheetState extends ConsumerState<TransactionFormSheet> {
   late final TextEditingController _amountController;
   late final TextEditingController _descriptionController;
 
-  late String _type; // income | expense
+  late String _type; 
   late DateTime _date;
   int? _categoryId;
 
@@ -72,7 +72,7 @@ class _TransactionFormSheetState extends ConsumerState<TransactionFormSheet> {
     );
   }
 
-  // A date with no time component, derived without Date.now sensitivity issues.
+  
   DateTime _todayFloor() {
     final now = DateTime.now();
     return DateTime(now.year, now.month, now.day);
@@ -101,7 +101,7 @@ class _TransactionFormSheetState extends ConsumerState<TransactionFormSheet> {
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
     if (_categoryId == null) {
-      _showSnack('Pilih kategori terlebih dahulu', isError: true);
+      _showSnack('Please select a category first', isError: true);
       return;
     }
 
@@ -109,7 +109,7 @@ class _TransactionFormSheetState extends ConsumerState<TransactionFormSheet> {
     final description = _descriptionController.text.trim();
     final controller = ref.read(transactionsControllerProvider.notifier);
 
-    // Loading drives the button via ref.watch(...).isLoading in build().
+    
     final ok = widget.isEditing
         ? await controller.edit(
             id: widget.existing!.id,
@@ -133,7 +133,7 @@ class _TransactionFormSheetState extends ConsumerState<TransactionFormSheet> {
     } else {
       final error = ref.read(transactionsControllerProvider).error;
       _showSnack(
-        error is Failure ? error.message : 'Gagal menyimpan transaksi',
+        error is Failure ? error.message : 'Failed to save transaction',
         isError: true,
       );
     }
@@ -184,45 +184,45 @@ class _TransactionFormSheetState extends ConsumerState<TransactionFormSheet> {
               ),
               const SizedBox(height: AppSpacing.section),
 
-              // Income / Expense toggle
+              
               SegmentedButton<String>(
                 showSelectedIcon: false,
                 segments: const [
-                  ButtonSegment(value: 'expense', label: Text('Pengeluaran')),
-                  ButtonSegment(value: 'income', label: Text('Pemasukan')),
+                  ButtonSegment(value: 'expense', label: Text('Expense')),
+                  ButtonSegment(value: 'income', label: Text('Income')),
                 ],
                 selected: {_type},
                 onSelectionChanged: (s) => setState(() {
                   _type = s.first;
-                  _categoryId = null; // category list depends on type
+                  _categoryId = null; 
                 }),
               ),
               const SizedBox(height: AppSpacing.section),
 
-              // Amount
+              
               TextFormField(
                 controller: _amountController,
                 keyboardType: TextInputType.number,
                 inputFormatters: [FilteringTextInputFormatter.digitsOnly],
                 decoration: const InputDecoration(
-                  labelText: 'Jumlah',
+                  labelText: 'Amount',
                   prefixText: 'Rp ',
                 ),
                 validator: (v) {
                   final value = double.tryParse((v ?? '').trim());
                   if (value == null || value <= 0) {
-                    return 'Masukkan jumlah yang valid';
+                    return 'Enter a valid amount';
                   }
                   return null;
                 },
               ),
               const SizedBox(height: AppSpacing.section),
 
-              // Category (depends on type)
+              
               categoriesAsync.when(
                 loading: () => const LinearProgressIndicator(),
                 error: (e, _) => Text(
-                  'Gagal memuat kategori: $e',
+                  'Failed to load categories: $e',
                   style: const TextStyle(color: AppColors.expense),
                 ),
                 data: (all) {
@@ -234,7 +234,7 @@ class _TransactionFormSheetState extends ConsumerState<TransactionFormSheet> {
                   return DropdownButtonFormField<int>(
                     initialValue: value,
                     isExpanded: true,
-                    decoration: const InputDecoration(labelText: 'Kategori'),
+                    decoration: const InputDecoration(labelText: 'Category'),
                     items: options
                         .map(
                           (c) => DropdownMenuItem(
@@ -262,13 +262,13 @@ class _TransactionFormSheetState extends ConsumerState<TransactionFormSheet> {
               ),
               const SizedBox(height: AppSpacing.section),
 
-              // Date
+              
               InkWell(
                 onTap: _pickDate,
                 borderRadius: BorderRadius.circular(12),
                 child: InputDecorator(
                   decoration: const InputDecoration(
-                    labelText: 'Tanggal',
+                    labelText: 'Date',
                     suffixIcon: Icon(Icons.calendar_today_rounded, size: 18),
                   ),
                   child: Text(_dateFormat.format(_date)),
@@ -276,12 +276,12 @@ class _TransactionFormSheetState extends ConsumerState<TransactionFormSheet> {
               ),
               const SizedBox(height: AppSpacing.section),
 
-              // Description
+              
               TextFormField(
                 controller: _descriptionController,
                 maxLines: 2,
                 decoration: const InputDecoration(
-                  labelText: 'Deskripsi (opsional)',
+                  labelText: 'Description (optional)',
                 ),
               ),
               const SizedBox(height: AppSpacing.s24),
@@ -297,7 +297,7 @@ class _TransactionFormSheetState extends ConsumerState<TransactionFormSheet> {
                           color: Colors.white,
                         ),
                       )
-                    : Text(widget.isEditing ? 'Simpan Perubahan' : 'Simpan'),
+                    : Text(widget.isEditing ? 'Save Changes' : 'Save'),
               ),
             ],
           ),

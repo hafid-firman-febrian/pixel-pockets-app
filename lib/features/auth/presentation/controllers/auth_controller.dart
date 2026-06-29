@@ -75,7 +75,7 @@ class AuthController extends Notifier<AuthState> {
       if (user == null) return;
       final idToken = user.idToken;
       if (idToken == null) {
-        throw const Failure(message: 'Google tidak mengembalikan ID token.');
+        throw const Failure(message: 'Google did not return an ID token.');
       }
       await _session.exchangeGoogle(idToken);
       state = AuthSignedIn(_restoredUser(user.displayName));

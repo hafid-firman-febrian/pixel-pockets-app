@@ -10,7 +10,7 @@ Future<bool> showPixelConfirm(
   required String title,
   required String message,
   String confirmLabel = 'OK',
-  String cancelLabel = 'Batal',
+  String cancelLabel = 'Cancel',
   PixelButtonVariant confirmVariant = PixelButtonVariant.primary,
   IconData? icon,
 }) async {

@@ -146,7 +146,7 @@ final routerProvider = Provider<GoRouter>((ref) {
     ],
 
     errorBuilder: (context, state) => Scaffold(
-      body: Center(child: Text('Halaman tidak ditemukan: ${state.uri}')),
+      body: Center(child: Text('Page not found: ${state.uri}')),
     ),
   );
 });

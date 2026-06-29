@@ -30,8 +30,8 @@ class _PeriodFilterCardState extends ConsumerState<PeriodFilterCard> {
         : switch (selection) {
             AutoPeriod() =>
               effective.valueOrNull?.name ??
-                  (effective.isLoading ? 'Juni 2026' : 'Periode Saat Ini'),
-            AllPeriods() => 'Semua Periode',
+                  (effective.isLoading ? 'June 2026' : 'Current Period'),
+            AllPeriods() => 'All Periods',
             SpecificPeriod() => effective.valueOrNull?.name ?? '...',
           };
 
@@ -354,7 +354,7 @@ class _PeriodPickerSheetState extends ConsumerState<_PeriodPickerSheet> {
                         Padding(
                           padding: const EdgeInsets.all(AppSpacing.s24),
                           child: Text(
-                            'Tidak ada periode untuk tahun $_selectedYear',
+                            'No periods for $_selectedYear',
                             style: AppTextStyles.bodyNormal.copyWith(
                               color: AppColors.textMuted,
                             ),

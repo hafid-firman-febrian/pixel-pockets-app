@@ -13,8 +13,8 @@ import 'package:pixel_pocket/features/transactions/presentation/screens/widgets/
 import 'package:pixel_pocket/features/transactions/presentation/screens/widgets/transaction_type_filter.dart';
 import 'package:pixelarticons/pixel.dart';
 
-/// Transactions list. UI only: it watches providers and delegates every
-/// write to [TransactionController] via small interaction handlers.
+
+
 class TransactionScreen extends ConsumerWidget {
   const TransactionScreen({super.key});
 
@@ -48,10 +48,10 @@ class TransactionScreen extends ConsumerWidget {
               ),
               const TransactionTypeFilter(),
               Expanded(
-                // Prefer showing data whenever we have it: an in-flight or
-                // failed mutation keeps the list visible (previous value is
-                // retained), so the list never blanks. Mutation errors are
-                // surfaced as snackbars by the action handlers, not here.
+                
+                
+                
+                
                 child: switch (transactionsAsync) {
                   AsyncValue(:final value?) => _buildList(context, ref, value),
                   AsyncValue(:final error?) => _ErrorView(
@@ -115,16 +115,16 @@ class TransactionScreen extends ConsumerWidget {
     final result = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Hapus transaksi?'),
-        content: const Text('Tindakan ini tidak dapat dibatalkan.'),
+        title: const Text('Delete transaction?'),
+        content: const Text('This action cannot be undone.'),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx, false),
-            child: const Text('Batal'),
+            child: const Text('Cancel'),
           ),
           TextButton(
             onPressed: () => Navigator.pop(ctx, true),
-            child: const Text('Hapus'),
+            child: const Text('Delete'),
           ),
         ],
       ),
@@ -143,17 +143,17 @@ class TransactionScreen extends ConsumerWidget {
         .delete(tx.id);
     if (ok) {
       messenger.showSnackBar(
-        const SnackBar(content: Text('Transaksi dihapus')),
+        const SnackBar(content: Text('Transaction deleted')),
       );
       return;
     }
 
     final error = ref.read(transactionsControllerProvider).error;
-    final message = error is Failure ? error.message : 'Gagal menghapus';
+    final message = error is Failure ? error.message : 'Failed to delete';
     messenger.showSnackBar(
       SnackBar(content: Text(message), backgroundColor: AppColors.expense),
     );
-    // Failed delete: refetch so the optimistically-dismissed row returns.
+    
     ref.invalidate(transactionsControllerProvider);
   }
 }
@@ -170,7 +170,7 @@ class _EmptyView extends StatelessWidget {
         SizedBox(height: AppSpacing.section),
         Center(
           child: Text(
-            'Belum ada transaksi',
+            'No transactions yet',
             style: TextStyle(color: AppColors.textMuted),
           ),
         ),
@@ -190,8 +190,8 @@ class _ErrorView extends StatelessWidget {
   final FailureType type;
   final VoidCallback onRetry;
 
-  /// Ikon per kategori error. Dio tidak bisa membedakan "tidak ada sinyal"
-  /// vs "sinyal lemah", jadi cellularsignaloff dipakai sebagai fallback umum.
+  
+  
   IconData get _icon {
     switch (type) {
       case FailureType.noConnection:
@@ -223,7 +223,7 @@ class _ErrorView extends StatelessWidget {
             PixelButton(
               onPressed: onRetry,
               icon: Pixel.reload,
-              label: 'Coba Lagi',
+              label: 'Try Again',
             ),
           ],
         ),

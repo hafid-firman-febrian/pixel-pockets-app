@@ -6,10 +6,10 @@ import 'package:pixel_pocket/core/widgets/pixel_button.dart';
 import 'package:pixel_pocket/features/auth/presentation/controllers/pin_controller.dart';
 import 'package:pixelarticons/pixel.dart';
 
-/// Settings. Currently holds a temporary "Reset PIN" action used during
-/// development: clearing the PIN flips the router gate (`hasPin → false`), which
-/// redirects to the set-PIN screen. A proper change-PIN / forgot-PIN flow lands
-/// in the PIN phase.
+
+
+
+
 class SettingsScreen extends ConsumerWidget {
   const SettingsScreen({super.key});
 
@@ -20,12 +20,12 @@ class SettingsScreen extends ConsumerWidget {
         backgroundColor: AppColors.surface,
         title: const Text('Reset PIN?'),
         content: const Text(
-          'PIN saat ini akan dihapus. Kamu akan diminta membuat PIN baru.',
+          'Your current PIN will be removed. You\'ll be asked to create a new one.',
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx, false),
-            child: const Text('Batal'),
+            child: const Text('Cancel'),
           ),
           TextButton(
             onPressed: () => Navigator.pop(ctx, true),
@@ -35,8 +35,8 @@ class SettingsScreen extends ConsumerWidget {
       ),
     );
     if (confirmed != true) return;
-    // Clearing flips pin status to false; the router redirect then sends the
-    // user to /set-pin automatically.
+    
+    
     await ref.read(pinControllerProvider.notifier).clearPin();
   }
 
@@ -60,7 +60,7 @@ class SettingsScreen extends ConsumerWidget {
             ),
             SizedBox(height: AppSpacing.s8),
             const Text(
-              'Sementara untuk testing — hapus PIN, lalu kamu diminta membuat PIN baru.',
+              'Temporary for testing — clears the PIN, then you\'ll be asked to create a new one.',
               style: TextStyle(color: AppColors.textMuted, fontSize: 12),
             ),
           ],
