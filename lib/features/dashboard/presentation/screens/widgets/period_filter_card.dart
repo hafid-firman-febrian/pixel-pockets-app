@@ -18,13 +18,17 @@ class PeriodFilterCard extends ConsumerWidget {
     final selection = ref.watch(selectedPeriodProvider);
     final effective = ref.watch(effectivePeriodProvider);
 
-    final label = switch (selection) {
-      AutoPeriod() =>
-        effective.valueOrNull?.name ??
-            (effective.isLoading ? 'Juni 2026' : 'Periode Saat Ini'),
-      AllPeriods() => 'Semua Periode',
-      SpecificPeriod() => effective.valueOrNull?.name ?? '...',
-    };
+    
+    
+    final label = effective.hasError
+        ? '-'
+        : switch (selection) {
+            AutoPeriod() =>
+              effective.valueOrNull?.name ??
+                  (effective.isLoading ? 'Juni 2026' : 'Periode Saat Ini'),
+            AllPeriods() => 'Semua Periode',
+            SpecificPeriod() => effective.valueOrNull?.name ?? '...',
+          };
 
     return InkWell(
       onTap: () => _openPicker(context, ref),
@@ -43,7 +47,9 @@ class PeriodFilterCard extends ConsumerWidget {
             children: [
               Text('PERIOD', style: AppTextStyles.bodyNormal),
               Skeletonizer(
-                enabled: effective.isLoading,
+                // Skeleton hanya saat initial load; saat pull-to-refresh
+                // periode lama tetap tampil (cukup spinner RefreshIndicator).
+                enabled: effective.isLoading && !effective.hasValue,
                 child: Row(
                   children: [
                     Text(

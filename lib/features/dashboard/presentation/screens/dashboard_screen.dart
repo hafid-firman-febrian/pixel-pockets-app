@@ -63,19 +63,20 @@ class DashboardScreen extends ConsumerWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    summaryAsync.when(
-                      loading: () => const Skeletonizer(
-                        child: TransactionSummaryCard(
-                          summary: _placeholderSummary,
-                        ),
-                      ),
-                      error: (e, _) => Padding(
+                    if (summaryAsync.hasError && !summaryAsync.hasValue)
+                      Padding(
                         padding: AppSpacing.card,
                         child: const Text('Failed to load summary.'),
+                      )
+                    else
+                      Skeletonizer(
+                        enabled:
+                            summaryAsync.isLoading && !summaryAsync.hasValue,
+                        child: TransactionSummaryCard(
+                          summary:
+                              summaryAsync.valueOrNull ?? _placeholderSummary,
+                        ),
                       ),
-                      data: (summary) =>
-                          TransactionSummaryCard(summary: summary),
-                    ),
                     SizedBox(height: AppSpacing.section),
                     Text(
                       'EXPENSES BY CATEGORY',
@@ -98,7 +99,6 @@ class DashboardScreen extends ConsumerWidget {
     );
   }
 
-  /// Refetch summary & salary periods saat user menarik ke bawah.
   Future<void> _refresh(WidgetRef ref) async {
     ref.invalidate(salaryPeriodProvider);
     ref.invalidate(dashboardSummaryProvider);
