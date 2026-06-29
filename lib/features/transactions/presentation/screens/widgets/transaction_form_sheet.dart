@@ -176,7 +176,7 @@ class _TransactionFormSheetState extends ConsumerState<TransactionFormSheet> {
                 ),
               ),
               Text(
-                widget.isEditing ? 'Edit Transaksi' : 'Transaksi Baru',
+                widget.isEditing ? 'Edit Transaction' : 'New Transaction',
                 style: const TextStyle(
                   fontSize: 18,
                   fontWeight: FontWeight.w700,
