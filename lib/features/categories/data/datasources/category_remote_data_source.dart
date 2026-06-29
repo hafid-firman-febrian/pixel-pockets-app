@@ -26,6 +26,35 @@ class CategoryRemoteDataSource {
         .map((e) => CategoryDto.fromJson(e as Map<String, dynamic>))
         .toList();
   }
+
+  Future<CategoryDto> create({
+    required String name,
+    required String color,
+    required String type,
+  }) async {
+    final response = await _dio.post(
+      ApiEndpoints.categories,
+      data: {'name': name, 'color': color, 'type': type},
+    );
+    return CategoryDto.fromJson(response.data['data'] as Map<String, dynamic>);
+  }
+
+  Future<CategoryDto> update({
+    required int id,
+    required String name,
+    required String color,
+    required String type,
+  }) async {
+    final response = await _dio.put(
+      ApiEndpoints.categoryById(id),
+      data: {'name': name, 'color': color, 'type': type},
+    );
+    return CategoryDto.fromJson(response.data['data'] as Map<String, dynamic>);
+  }
+
+  Future<void> delete(int id) async {
+    await _dio.delete(ApiEndpoints.categoryById(id));
+  }
 }
 
 final categoryRemoteDataSourceProvider = Provider<CategoryRemoteDataSource>(
