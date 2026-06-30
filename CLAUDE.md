@@ -373,6 +373,7 @@ Semua endpoint transactions & summary menerima filter yang sama:
 | `start_date` | `YYYY-MM-DD` | Wajib jika `filter=custom` |
 | `end_date` | `YYYY-MM-DD` | Wajib jika `filter=custom` |
 | `transaction_type` | `income` \| `expense` | |
+| `category_id` | `int` | Filter transaksi per kategori |
 
 ---
 
