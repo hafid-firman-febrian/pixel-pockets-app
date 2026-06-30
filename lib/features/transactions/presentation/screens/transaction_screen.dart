@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
@@ -5,6 +7,7 @@ import 'package:pixel_pocket/core/error/failure.dart';
 import 'package:pixel_pocket/core/theme/app_color.dart';
 import 'package:pixel_pocket/core/theme/app_spacing.dart';
 import 'package:pixel_pocket/core/theme/app_text_style.dart';
+import 'package:pixel_pocket/core/utils/currency_formatter.dart';
 import 'package:pixel_pocket/core/widgets/pixel_button.dart';
 import 'package:pixel_pocket/core/widgets/pixel_card.dart';
 import 'package:pixel_pocket/core/widgets/pixel_confirm_dialog.dart';
@@ -14,6 +17,7 @@ import 'package:pixel_pocket/features/transactions/presentation/controllers/tran
 import 'package:pixel_pocket/features/transactions/presentation/screens/widgets/transaction_form_sheet.dart';
 import 'package:pixel_pocket/features/transactions/presentation/screens/widgets/transaction_list_item.dart';
 import 'package:pixel_pocket/features/transactions/presentation/screens/widgets/transaction_range_filter.dart';
+import 'package:pixel_pocket/features/transactions/presentation/states/transaction_state.dart';
 import 'package:pixelarticons/pixel.dart';
 import 'package:skeletonizer/skeletonizer.dart';
 
@@ -41,9 +45,9 @@ class TransactionScreen extends ConsumerWidget {
               padding: AppSpacing.card,
               child: Text('TRANSACTIONS', style: AppTextStyles.displayMedium),
             ),
-            const SizedBox(height: AppSpacing.section),
+            const Padding(padding: AppSpacing.card, child: _SearchField()),
+
             const TransactionRangeFilter(),
-            const SizedBox(height: AppSpacing.section),
             Expanded(
               child: transactionsAsync.isLoading
                   ? const _ListSkeleton()
@@ -109,9 +113,20 @@ class TransactionScreen extends ConsumerWidget {
     for (var g = 0; g < groups.length; g++) {
       if (g > 0) children.add(const SizedBox(height: AppSpacing.section));
       final group = groups[g];
+      var income = 0.0;
+      var expense = 0.0;
+      for (final tx in group.value) {
+        if (tx.isIncome) {
+          income += tx.amount;
+        } else {
+          expense += tx.amount;
+        }
+      }
       children.add(
         _DateGroupCard(
           date: group.key,
+          income: income,
+          expense: expense,
           items: [
             for (var i = 0; i < group.value.length; i++) ...[
               if (i > 0) const Divider(height: 1, color: AppColors.border),
@@ -227,11 +242,98 @@ class TransactionScreen extends ConsumerWidget {
   }
 }
 
+class _SearchField extends ConsumerStatefulWidget {
+  const _SearchField();
+
+  @override
+  ConsumerState<_SearchField> createState() => _SearchFieldState();
+}
+
+class _SearchFieldState extends ConsumerState<_SearchField> {
+  static const _debounce = Duration(milliseconds: 300);
+
+  final _controller = TextEditingController();
+  Timer? _timer;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller.text = ref.read(transactionSearchProvider);
+  }
+
+  @override
+  void dispose() {
+    _timer?.cancel();
+    _controller.dispose();
+    super.dispose();
+  }
+
+  void _onChanged(String value) {
+    _timer?.cancel();
+    _timer = Timer(_debounce, () {
+      ref.read(transactionSearchProvider.notifier).state = value.trim();
+    });
+    setState(() {});
+  }
+
+  void _clear() {
+    _timer?.cancel();
+    _controller.clear();
+    ref.read(transactionSearchProvider.notifier).state = '';
+    setState(() {});
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return TextField(
+      controller: _controller,
+      onChanged: _onChanged,
+      textInputAction: TextInputAction.search,
+      style: AppTextStyles.bodyNormal,
+      decoration: InputDecoration(
+        isDense: true,
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: AppSpacing.s8,
+          vertical: AppSpacing.s8,
+        ),
+        hintText: 'Search description or category',
+        hintStyle: AppTextStyles.bodyNormal.copyWith(
+          color: AppColors.textMuted,
+        ),
+        prefixIcon: const Icon(
+          Pixel.search,
+          size: 16,
+          color: AppColors.textMuted,
+        ),
+        prefixIconConstraints: const BoxConstraints(minWidth: 32, minHeight: 32),
+        suffixIcon: _controller.text.isEmpty
+            ? null
+            : InkWell(
+                onTap: _clear,
+                child: const Icon(
+                  Pixel.close,
+                  size: 16,
+                  color: AppColors.textMuted,
+                ),
+              ),
+        suffixIconConstraints: const BoxConstraints(minWidth: 32, minHeight: 32),
+      ),
+    );
+  }
+}
+
 class _DateGroupCard extends StatelessWidget {
-  const _DateGroupCard({required this.date, required this.items});
+  const _DateGroupCard({
+    required this.date,
+    required this.items,
+    this.income = 0,
+    this.expense = 0,
+  });
 
   final String date;
   final List<Widget> items;
+  final double income;
+  final double expense;
 
   @override
   Widget build(BuildContext context) {
@@ -247,7 +349,11 @@ class _DateGroupCard extends StatelessWidget {
               AppSpacing.s4,
               AppSpacing.s8,
             ),
-            child: _DateGroupHeader(date: date),
+            child: _DateGroupHeader(
+              date: date,
+              income: income,
+              expense: expense,
+            ),
           ),
 
           PixelCard(child: Column(children: items)),
@@ -258,9 +364,15 @@ class _DateGroupCard extends StatelessWidget {
 }
 
 class _DateGroupHeader extends StatelessWidget {
-  const _DateGroupHeader({required this.date});
+  const _DateGroupHeader({
+    required this.date,
+    this.income = 0,
+    this.expense = 0,
+  });
 
   final String date;
+  final double income;
+  final double expense;
 
   String get _label {
     final parsed = DateTime.tryParse(date);
@@ -277,9 +389,35 @@ class _DateGroupHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Text(
-      _label,
-      style: AppTextStyles.overlineLg.copyWith(color: AppColors.primary),
+    return Row(
+      children: [
+        Expanded(
+          child: Text(
+            _label,
+            style: AppTextStyles.overlineLg.copyWith(color: AppColors.primary),
+          ),
+        ),
+        if (income > 0) ...[
+          const SizedBox(width: AppSpacing.s8),
+          Text(
+            '+${CurrencyFormatter.format(income)}',
+            style: AppTextStyles.overlineSm.copyWith(
+              color: AppColors.income,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+        ],
+        if (expense > 0) ...[
+          const SizedBox(width: AppSpacing.s8),
+          Text(
+            '-${CurrencyFormatter.format(expense)}',
+            style: AppTextStyles.overlineSm.copyWith(
+              color: AppColors.expense,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+        ],
+      ],
     );
   }
 }

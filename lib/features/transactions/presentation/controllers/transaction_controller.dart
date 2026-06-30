@@ -8,6 +8,10 @@ class TransactionsController
     extends AutoDisposeAsyncNotifier<List<TransactionModel>> {
   static const int pageSize = 10;
 
+  /// Safety cap when fetching every page in a range for search, so an "ALL"
+  /// range can never loop unbounded.
+  static const int _maxSearchPages = 50;
+
   int _page = 1;
   bool _hasMore = true;
   bool _loadingMore = false;
@@ -19,13 +23,44 @@ class TransactionsController
   @override
   Future<List<TransactionModel>> build() async {
     final range = ref.watch(rangeFilterProvider);
+    final query = ref.watch(transactionSearchProvider).trim();
     _page = 1;
+
+    if (query.isNotEmpty) {
+      _hasMore = false;
+      final all = await _fetchAllInRange(range);
+      return _filter(all, query);
+    }
+
     final items = await _service.list(range.toFilter(page: 1, limit: pageSize));
     _hasMore = items.length == pageSize;
     return items;
   }
 
   TransactionService get _service => ref.read(transactionServiceProvider);
+
+  /// Loads every transaction in [range] by walking pages until exhausted.
+  Future<List<TransactionModel>> _fetchAllInRange(RangeFilter range) async {
+    final all = <TransactionModel>[];
+    for (var page = 1; page <= _maxSearchPages; page++) {
+      final batch = await _service.list(
+        range.toFilter(page: page, limit: pageSize),
+      );
+      all.addAll(batch);
+      if (batch.length < pageSize) break;
+    }
+    return all;
+  }
+
+  /// Case-insensitive match against description and category name.
+  List<TransactionModel> _filter(List<TransactionModel> items, String query) {
+    final q = query.toLowerCase();
+    return items.where((t) {
+      final desc = t.description?.toLowerCase() ?? '';
+      final category = t.categoryName?.toLowerCase() ?? '';
+      return desc.contains(q) || category.contains(q);
+    }).toList(growable: false);
+  }
 
   Future<void> loadMore() async {
     if (_loadingMore || !_hasMore || !state.hasValue) return;
@@ -109,7 +144,17 @@ class TransactionsController
       return false;
     }
     final range = ref.read(rangeFilterProvider);
+    final query = ref.read(transactionSearchProvider).trim();
     _page = 1;
+
+    if (query.isNotEmpty) {
+      _hasMore = false;
+      state = await AsyncValue.guard(
+        () async => _filter(await _fetchAllInRange(range), query),
+      );
+      return !state.hasError;
+    }
+
     state = await AsyncValue.guard(
       () => _service.list(range.toFilter(page: 1, limit: pageSize)),
     );
