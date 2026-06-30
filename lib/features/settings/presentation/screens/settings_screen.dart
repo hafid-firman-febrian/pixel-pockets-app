@@ -45,7 +45,8 @@ class SettingsScreen extends ConsumerWidget {
     final confirmed = await showPixelConfirm(
       context,
       title: 'Reset PIN?',
-      message: 'Your current PIN will be removed. '
+      message:
+          'Your current PIN will be removed. '
           'You\'ll be asked to create a new one.',
       confirmLabel: 'Reset',
       confirmVariant: PixelButtonVariant.danger,
@@ -55,8 +56,6 @@ class SettingsScreen extends ConsumerWidget {
     await ref.read(pinControllerProvider.notifier).clearPin();
   }
 }
-
-// ── Salary periods ──────────────────────────────────────────────────────────
 
 class _SalaryPeriodSection extends ConsumerWidget {
   const _SalaryPeriodSection();
@@ -73,23 +72,54 @@ class _SalaryPeriodSection extends ConsumerWidget {
         error: (e, _) => const _LoadError(),
         data: (periods) => periods.isEmpty
             ? const _EmptyHint('No salary periods yet')
-            : Wrap(
-                spacing: AppSpacing.s8,
-                runSpacing: AppSpacing.s8,
-                children: [
-                  for (final p in periods)
-                    PixelChip(
-                      label: p.name,
-                      onTap: () => _open(context, existing: p),
-                      onDelete: () => _delete(context, ref, p),
-                    ),
-                ],
-              ),
+            : _grouped(context, ref, periods),
       ),
     );
   }
 
-  Future<void> _open(BuildContext context, {SalaryPeriodModel? existing}) async {
+  Widget _grouped(
+    BuildContext context,
+    WidgetRef ref,
+    List<SalaryPeriodModel> periods,
+  ) {
+    final byYear = <String, List<SalaryPeriodModel>>{};
+    for (final p in periods) {
+      final year = p.endDate.length >= 4 ? p.endDate.substring(0, 4) : '—';
+      byYear.putIfAbsent(year, () => []).add(p);
+    }
+    final years = byYear.keys.toList()..sort((a, b) => b.compareTo(a));
+
+    final sections = <Widget>[];
+    for (final year in years) {
+      if (sections.isNotEmpty) {
+        sections.add(const SizedBox(height: AppSpacing.s12));
+      }
+      sections.add(_SectionLabel(year));
+      sections.add(
+        Wrap(
+          spacing: AppSpacing.s8,
+          runSpacing: AppSpacing.s8,
+          children: [
+            for (final p in byYear[year]!)
+              PixelChip(
+                label: p.name,
+                onTap: () => _open(context, existing: p),
+                onDelete: () => _delete(context, ref, p),
+              ),
+          ],
+        ),
+      );
+    }
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: sections,
+    );
+  }
+
+  Future<void> _open(
+    BuildContext context, {
+    SalaryPeriodModel? existing,
+  }) async {
     final messenger = ScaffoldMessenger.of(context);
     final saved = await SalaryPeriodFormSheet.show(context, existing: existing);
     if (saved == true) {
@@ -132,8 +162,6 @@ class _SalaryPeriodSection extends ConsumerWidget {
   }
 }
 
-// ── Categories ──────────────────────────────────────────────────────────────
-
 class _CategorySection extends ConsumerWidget {
   const _CategorySection();
 
@@ -154,7 +182,6 @@ class _CategorySection extends ConsumerWidget {
     );
   }
 
-  /// Chips grouped by category type (expense / income / both).
   Widget _grouped(
     BuildContext context,
     WidgetRef ref,
@@ -226,9 +253,7 @@ class _CategorySection extends ConsumerWidget {
     if (!confirmed) return;
     try {
       await ref.read(categoryControllerProvider).delete(category.id);
-      messenger.showSnackBar(
-        const SnackBar(content: Text('Category deleted')),
-      );
+      messenger.showSnackBar(const SnackBar(content: Text('Category deleted')));
     } catch (_) {
       messenger.showSnackBar(
         const SnackBar(
@@ -240,9 +265,6 @@ class _CategorySection extends ConsumerWidget {
   }
 }
 
-// ── Shared pieces ───────────────────────────────────────────────────────────
-
-/// A labelled card holding a chip area and an "Add" button.
 class _DataCard extends StatelessWidget {
   const _DataCard({
     required this.label,
