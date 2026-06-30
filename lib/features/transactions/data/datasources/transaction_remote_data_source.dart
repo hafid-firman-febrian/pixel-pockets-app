@@ -48,6 +48,7 @@ class TransactionRemoteDataSource {
     if (f.startDate != null) 'start_date': f.startDate,
     if (f.endDate != null) 'end_date': f.endDate,
     if (f.transactionType != null) 'transaction_type': f.transactionType,
+    if (f.categoryId != null) 'category_id': f.categoryId,
     'page': f.page,
     'limit': f.limit,
   };

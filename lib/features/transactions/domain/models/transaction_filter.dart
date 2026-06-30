@@ -4,6 +4,7 @@ class TransactionFilter {
   final String? startDate;
   final String? endDate;
   final String? transactionType;
+  final int? categoryId;
   final int page;
   final int limit;
 
@@ -13,6 +14,7 @@ class TransactionFilter {
     this.startDate,
     this.endDate,
     this.transactionType,
+    this.categoryId,
     this.page = 1,
     this.limit = 20,
   });
@@ -26,6 +28,8 @@ class TransactionFilter {
     String? endDate,
     String? transactionType,
     bool clearTransactionType = false,
+    int? categoryId,
+    bool clearCategoryId = false,
     int? page,
     int? limit,
   }) {
@@ -39,6 +43,7 @@ class TransactionFilter {
       transactionType: clearTransactionType
           ? null
           : (transactionType ?? this.transactionType),
+      categoryId: clearCategoryId ? null : (categoryId ?? this.categoryId),
       page: page ?? this.page,
       limit: limit ?? this.limit,
     );
@@ -52,6 +57,7 @@ class TransactionFilter {
       other.startDate == startDate &&
       other.endDate == endDate &&
       other.transactionType == transactionType &&
+      other.categoryId == categoryId &&
       other.page == page &&
       other.limit == limit;
 
@@ -62,6 +68,7 @@ class TransactionFilter {
     startDate,
     endDate,
     transactionType,
+    categoryId,
     page,
     limit,
   );
