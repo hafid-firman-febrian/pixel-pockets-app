@@ -6,8 +6,6 @@ import 'package:pixel_pocket/core/theme/app_text_style.dart';
 import 'package:pixel_pocket/core/utils/currency_formatter.dart';
 import 'package:pixel_pocket/features/transactions/domain/models/transaction_model.dart';
 
-/// A single transaction row: a category-colored accent bar, the note/category
-/// title with the category label beneath, and the signed amount + date.
 class TransactionListItem extends StatelessWidget {
   const TransactionListItem({super.key, required this.transaction, this.onTap});
 
@@ -23,7 +21,7 @@ class TransactionListItem extends StatelessWidget {
     final title = hasDescription
         ? transaction.description!
         : (transaction.categoryName ?? 'Uncategorized');
-    // Only show the category label as a second line when the title is the note.
+
     final categoryLabel = hasDescription ? transaction.categoryName : null;
 
     final amountText =
@@ -98,13 +96,11 @@ class TransactionListItem extends StatelessWidget {
     );
   }
 
-  /// Thousands-separated amount without the "Rp" prefix (e.g. `8.000.000`).
   String _thousands(double amount) {
     final formatted = CurrencyFormatter.input(amount);
     return formatted.isEmpty ? '0' : formatted;
   }
 
-  /// `yyyy-MM-dd` → `17 JUN`; falls back to the raw string if unparseable.
   String _formatDate(String date) {
     final parsed = DateTime.tryParse(date);
     if (parsed == null) return date;

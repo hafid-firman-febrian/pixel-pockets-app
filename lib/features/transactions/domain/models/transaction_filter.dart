@@ -1,11 +1,9 @@
-/// Immutable filter criteria for the transactions list. Pure domain — the
-/// data source translates this into query parameters.
 class TransactionFilter {
   final int? salaryPeriodId;
-  final String? filter; // week | month | year | custom
-  final String? startDate; // yyyy-MM-dd
-  final String? endDate; // yyyy-MM-dd
-  final String? transactionType; // income | expense
+  final String? filter;
+  final String? startDate;
+  final String? endDate;
+  final String? transactionType;
   final int page;
   final int limit;
 
@@ -32,8 +30,9 @@ class TransactionFilter {
     int? limit,
   }) {
     return TransactionFilter(
-      salaryPeriodId:
-          clearSalaryPeriodId ? null : (salaryPeriodId ?? this.salaryPeriodId),
+      salaryPeriodId: clearSalaryPeriodId
+          ? null
+          : (salaryPeriodId ?? this.salaryPeriodId),
       filter: clearFilter ? null : (filter ?? this.filter),
       startDate: startDate ?? this.startDate,
       endDate: endDate ?? this.endDate,
@@ -58,12 +57,12 @@ class TransactionFilter {
 
   @override
   int get hashCode => Object.hash(
-        salaryPeriodId,
-        filter,
-        startDate,
-        endDate,
-        transactionType,
-        page,
-        limit,
-      );
+    salaryPeriodId,
+    filter,
+    startDate,
+    endDate,
+    transactionType,
+    page,
+    limit,
+  );
 }

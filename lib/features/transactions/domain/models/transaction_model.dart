@@ -1,13 +1,12 @@
-/// A single transaction — pure domain entity. No JSON, no Dio.
 class TransactionModel {
   final int id;
   final String transactionDate;
-  final String transactionType; // "income" | "expense"
+  final String transactionType;
   final double amount;
   final int? categoryId;
   final String? description;
   final String? categoryName;
-  final String? categoryColor; // hex "#RRGGBB"
+  final String? categoryColor;
   final String? createdAt;
   final String? updatedAt;
 

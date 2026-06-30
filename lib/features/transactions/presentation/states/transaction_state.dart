@@ -3,33 +3,35 @@ import 'package:intl/intl.dart';
 import 'package:pixel_pocket/features/salary_period/domain/models/salary_period_model.dart';
 import 'package:pixel_pocket/features/transactions/domain/models/transaction_filter.dart';
 
-/// The time window the transactions list is scoped to.
 enum RangeUnit { day, week, month, year, all }
 
-/// Selected time-range filter for the transactions list: a [unit] plus an
-/// [anchor] date that prev/next shifts. Pure value object — maps itself to a
-/// [TransactionFilter] (`custom` + start/end) so prev/next works for any window.
 class RangeFilter {
-  const RangeFilter({required this.unit, required this.anchor, this.salaryPeriod});
+  const RangeFilter({
+    required this.unit,
+    required this.anchor,
+    this.salaryPeriod,
+  });
 
   final RangeUnit unit;
   final DateTime anchor;
 
-  /// When set, filters by this salary period instead of the time window —
-  /// `salary_period_id` overrides the date filter on the backend.
   final SalaryPeriodModel? salaryPeriod;
 
   bool get isSalaryPeriod => salaryPeriod != null;
 
-  /// Today's window — the default for a freshly selected unit.
   factory RangeFilter.now(RangeUnit unit) {
     final now = DateTime.now();
-    return RangeFilter(unit: unit, anchor: DateTime(now.year, now.month, now.day));
+    return RangeFilter(
+      unit: unit,
+      anchor: DateTime(now.year, now.month, now.day),
+    );
   }
 
-  /// Filter scoped to a specific salary period.
-  factory RangeFilter.period(SalaryPeriodModel period) =>
-      RangeFilter(unit: RangeUnit.all, anchor: DateTime(2000), salaryPeriod: period);
+  factory RangeFilter.period(SalaryPeriodModel period) => RangeFilter(
+    unit: RangeUnit.all,
+    anchor: DateTime(2000),
+    salaryPeriod: period,
+  );
 
   TransactionFilter toFilter({required int page, required int limit}) {
     if (salaryPeriod != null) {
@@ -52,14 +54,13 @@ class RangeFilter {
     );
   }
 
-  /// Inclusive [start, end] of the current window.
   (DateTime, DateTime) get bounds {
     final a = DateTime(anchor.year, anchor.month, anchor.day);
     switch (unit) {
       case RangeUnit.day:
         return (a, a);
       case RangeUnit.week:
-        final start = a.subtract(Duration(days: a.weekday - 1)); // Monday
+        final start = a.subtract(Duration(days: a.weekday - 1));
         return (start, start.add(const Duration(days: 6)));
       case RangeUnit.month:
         return (DateTime(a.year, a.month, 1), DateTime(a.year, a.month + 1, 0));
@@ -70,7 +71,6 @@ class RangeFilter {
     }
   }
 
-  /// Shift the window by [delta] units (e.g. previous/next day, week, …).
   RangeFilter shifted(int delta) {
     switch (unit) {
       case RangeUnit.day:
@@ -89,13 +89,15 @@ class RangeFilter {
           anchor: DateTime(anchor.year, anchor.month + delta, 1),
         );
       case RangeUnit.year:
-        return RangeFilter(unit: unit, anchor: DateTime(anchor.year + delta, 1, 1));
+        return RangeFilter(
+          unit: unit,
+          anchor: DateTime(anchor.year + delta, 1, 1),
+        );
       case RangeUnit.all:
         return this;
     }
   }
 
-  /// Human label for the navigator (e.g. "17 Jun 2026", "Jun 2026", "2026").
   String get label {
     if (salaryPeriod != null) return salaryPeriod!.name;
     final (start, end) = bounds;
@@ -127,8 +129,6 @@ class RangeFilter {
   int get hashCode => Object.hash(unit, anchor, salaryPeriod?.id);
 }
 
-/// Selected range for the transactions list. Changing it re-runs
-/// [TransactionsController.build], which refetches page 1.
 final rangeFilterProvider = StateProvider<RangeFilter>(
   (ref) => RangeFilter.now(RangeUnit.day),
 );

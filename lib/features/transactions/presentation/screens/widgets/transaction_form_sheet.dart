@@ -167,15 +167,15 @@ class _TransactionFormSheetState extends ConsumerState<TransactionFormSheet> {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              // Expense / Income toggle (pixel buttons).
+              
               Row(
                 children: [
                   Expanded(
                     child: PixelButton(
                       label: 'EXPENSE',
                       isFullWidth: true,
-                      // Active → colored & flat (pressed-in); inactive → grey
-                      // with the normal raised shadow.
+                      
+                      
                       variant: _type == 'expense'
                           ? PixelButtonVariant.expense
                           : PixelButtonVariant.surface,
@@ -301,7 +301,7 @@ class _TransactionFormSheetState extends ConsumerState<TransactionFormSheet> {
     if (_type == type) return;
     setState(() {
       _type = type;
-      _categoryId = null; // category list depends on type
+      _categoryId = null; 
     });
   }
 }
