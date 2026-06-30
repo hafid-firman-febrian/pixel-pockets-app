@@ -68,6 +68,7 @@ final recentTransactionsProvider = FutureProvider<List<TransactionModel>>((
       .list(TransactionFilter(salaryPeriodId: period?.id, limit: 5));
 });
 
+
 DateTime _todayFloor() {
   final now = DateTime.now();
   return DateTime(now.year, now.month, now.day);

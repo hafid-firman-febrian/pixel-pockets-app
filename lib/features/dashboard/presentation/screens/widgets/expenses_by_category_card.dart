@@ -6,6 +6,7 @@ import 'package:pixel_pocket/core/theme/app_text_style.dart';
 import 'package:pixel_pocket/core/utils/currency_formatter.dart';
 import 'package:pixel_pocket/core/widgets/pixel_card.dart';
 import 'package:pixel_pocket/features/dashboard/domain/models/category_summary.dart';
+import 'package:pixel_pocket/features/dashboard/presentation/screens/widgets/category_transactions_sheet.dart';
 import 'package:pixelarticons/pixel.dart';
 import 'package:skeletonizer/skeletonizer.dart';
 
@@ -39,7 +40,14 @@ class _ExpensesByCategoryCardState extends State<ExpensesByCategoryCard> {
             children: [
               for (var i = 0; i < visible.length; i++) ...[
                 if (i > 0) SizedBox(height: AppSpacing.section),
-                _CategoryRow(item: visible[i]),
+                _CategoryRow(
+                  item: visible[i],
+                  onTap: () => CategoryTransactionsSheet.show(
+                    context,
+                    categoryId: visible[i].categoryId,
+                    categoryName: visible[i].name,
+                  ),
+                ),
               ],
               if (hidden > 0) ...[
                 SizedBox(height: AppSpacing.section),
@@ -97,13 +105,21 @@ class _MoreButton extends StatelessWidget {
 }
 
 class _CategoryRow extends StatelessWidget {
-  const _CategoryRow({required this.item});
+  const _CategoryRow({required this.item, this.onTap});
 
   final CategorySummary item;
+  final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
     final color = AppColors.fromHex(item.colorHex);
+    return InkWell(
+      onTap: onTap,
+      child: _content(color),
+    );
+  }
+
+  Widget _content(Color color) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
