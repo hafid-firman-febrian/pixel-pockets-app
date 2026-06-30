@@ -132,3 +132,8 @@ class RangeFilter {
 final rangeFilterProvider = StateProvider<RangeFilter>(
   (ref) => RangeFilter.now(RangeUnit.day),
 );
+
+/// Free-text search query. Empty string means "no search" (normal pagination).
+/// When non-empty, the controller loads every transaction in the active range
+/// and filters locally by description / category name.
+final transactionSearchProvider = StateProvider<String>((ref) => '');
