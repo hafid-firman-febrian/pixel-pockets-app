@@ -68,7 +68,13 @@ class IncomeExpenseChart extends StatelessWidget {
                     ),
                   ),
                 ),
-                lineTouchData: const LineTouchData(enabled: true),
+                lineTouchData: LineTouchData(
+                  enabled: true,
+                  touchTooltipData: LineTouchTooltipData(
+                    getTooltipColor: (_) => AppColors.surfaceVariant,
+                    getTooltipItems: _tooltipItems,
+                  ),
+                ),
                 lineBarsData: [
                   _line(data.income, AppColors.income),
                   _line(data.expense, AppColors.expense),
@@ -79,6 +85,20 @@ class IncomeExpenseChart extends StatelessWidget {
         ],
       ),
     );
+  }
+
+  List<LineTooltipItem?> _tooltipItems(List<LineBarSpot> spots) {
+    return spots.map((spot) {
+      final color = spot.barIndex == 0 ? AppColors.income : AppColors.expense;
+      final label = spot.barIndex == 0 ? 'Income' : 'Expense';
+      return LineTooltipItem(
+        '$label\n${CurrencyFormatter.format(spot.y)}',
+        AppTextStyles.captionSm.copyWith(
+          color: color,
+          fontWeight: FontWeight.w700,
+        ),
+      );
+    }).toList();
   }
 
   LineChartBarData _line(List<double> values, Color color) {
