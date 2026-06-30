@@ -24,19 +24,37 @@ class SettingsScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    return Scaffold(
-      appBar: AppBar(title: const Text('SETTINGS')),
-      body: ListView(
-        padding: AppSpacing.screenAll,
-        children: [
-          const _SectionLabel('DATA'),
-          const _SalaryPeriodSection(),
-          const SizedBox(height: AppSpacing.section),
-          const _CategorySection(),
-          const SizedBox(height: AppSpacing.section),
-          const _SectionLabel('SECURITY'),
-          _ResetPinTile(onTap: () => _resetPin(context, ref)),
-        ],
+    return SafeArea(
+      child: Scaffold(
+        body: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const SizedBox(height: AppSpacing.section),
+            Padding(
+              padding: AppSpacing.card,
+              child: Text('SETTINGS', style: AppTextStyles.displayMedium),
+            ),
+            Expanded(
+              child: ListView(
+                padding: const EdgeInsets.fromLTRB(
+                  AppSpacing.s16,
+                  AppSpacing.section,
+                  AppSpacing.s16,
+                  AppSpacing.s16,
+                ),
+                children: [
+                  const _SectionLabel('DATA'),
+                  const _SalaryPeriodSection(),
+                  const SizedBox(height: AppSpacing.section),
+                  const _CategorySection(),
+                  const SizedBox(height: AppSpacing.section),
+                  const _SectionLabel('SECURITY'),
+                  _ResetPinTile(onTap: () => _resetPin(context, ref)),
+                ],
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
