@@ -8,8 +8,8 @@ class TransactionsController
     extends AutoDisposeAsyncNotifier<List<TransactionModel>> {
   static const int pageSize = 10;
 
-  /// Safety cap when fetching every page in a range for search, so an "ALL"
-  /// range can never loop unbounded.
+  static const int _searchPageSize = 100;
+
   static const int _maxSearchPages = 50;
 
   int _page = 1;
@@ -39,27 +39,27 @@ class TransactionsController
 
   TransactionService get _service => ref.read(transactionServiceProvider);
 
-  /// Loads every transaction in [range] by walking pages until exhausted.
   Future<List<TransactionModel>> _fetchAllInRange(RangeFilter range) async {
     final all = <TransactionModel>[];
     for (var page = 1; page <= _maxSearchPages; page++) {
       final batch = await _service.list(
-        range.toFilter(page: page, limit: pageSize),
+        range.toFilter(page: page, limit: _searchPageSize),
       );
       all.addAll(batch);
-      if (batch.length < pageSize) break;
+      if (batch.length < _searchPageSize) break;
     }
     return all;
   }
 
-  /// Case-insensitive match against description and category name.
   List<TransactionModel> _filter(List<TransactionModel> items, String query) {
     final q = query.toLowerCase();
-    return items.where((t) {
-      final desc = t.description?.toLowerCase() ?? '';
-      final category = t.categoryName?.toLowerCase() ?? '';
-      return desc.contains(q) || category.contains(q);
-    }).toList(growable: false);
+    return items
+        .where((t) {
+          final desc = t.description?.toLowerCase() ?? '';
+          final category = t.categoryName?.toLowerCase() ?? '';
+          return desc.contains(q) || category.contains(q);
+        })
+        .toList(growable: false);
   }
 
   Future<void> loadMore() async {
