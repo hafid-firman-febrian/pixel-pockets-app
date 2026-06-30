@@ -3,8 +3,6 @@ import 'package:pixel_pocket/features/transactions/data/repositories/transaction
 import 'package:pixel_pocket/features/transactions/domain/models/transaction_filter.dart';
 import 'package:pixel_pocket/features/transactions/domain/models/transaction_model.dart';
 
-/// Business logic for transactions. Builds domain objects from raw inputs and
-/// orchestrates the repository. No Riverpod state, no widgets.
 class TransactionService {
   TransactionService(this._repo);
 

@@ -78,8 +78,6 @@ class TransactionScreen extends ConsumerWidget {
     List<TransactionModel> transactions,
   ) {
     if (transactions.isEmpty) {
-      // Centered empty state that's still pull-to-refreshable. The scroll view
-      // is stretched to the full viewport height so Center sits in the middle.
       return RefreshIndicator(
         color: AppColors.primary,
         backgroundColor: AppColors.surface,
@@ -299,7 +297,7 @@ class _ListSkeleton extends StatelessWidget {
       categoryName: 'Category',
       description: 'Placeholder note',
     );
-    // Mirror the real list: a plain ListView of date-group cards (no outer card).
+
     return Skeletonizer(
       child: ListView(
         physics: const NeverScrollableScrollPhysics(),

@@ -6,8 +6,8 @@ import 'package:pixel_pocket/features/transactions/data/dtos/transaction_dto.dar
 import 'package:pixel_pocket/features/transactions/domain/models/transaction_filter.dart';
 import 'package:pixel_pocket/features/transactions/domain/models/transaction_model.dart';
 
-/// Maps DTOs ⇄ domain models and converts [DioException] into [Failure].
-/// Never touches Dio directly — that's the data source's job.
+
+
 class TransactionRepository {
   TransactionRepository(this._remote);
 
