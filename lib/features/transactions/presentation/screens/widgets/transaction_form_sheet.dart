@@ -211,11 +211,25 @@ class _TransactionFormSheetState extends ConsumerState<TransactionFormSheet> {
                   ),
                 ],
               ),
+
+              const SizedBox(height: AppSpacing.section),
+
+              const PixelFieldLabel('DATE'),
+              InkWell(
+                onTap: _pickDate,
+                child: InputDecorator(
+                  decoration: const InputDecoration(
+                    suffixIcon: Icon(Pixel.calendar, size: 18),
+                  ),
+                  child: Text(_dateFormat.format(_date)),
+                ),
+              ),
+
               const SizedBox(height: AppSpacing.section),
 
               const PixelFieldLabel('AMOUNT'),
               Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
+                crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
                   PixelIconButton(
                     icon: Pixel.minus,
@@ -289,18 +303,7 @@ class _TransactionFormSheetState extends ConsumerState<TransactionFormSheet> {
                     ),
                 ],
               ),
-              const SizedBox(height: AppSpacing.section),
 
-              const PixelFieldLabel('DATE'),
-              InkWell(
-                onTap: _pickDate,
-                child: InputDecorator(
-                  decoration: const InputDecoration(
-                    suffixIcon: Icon(Pixel.calendar, size: 18),
-                  ),
-                  child: Text(_dateFormat.format(_date)),
-                ),
-              ),
               const SizedBox(height: AppSpacing.section),
 
               const PixelFieldLabel('CATEGORY'),
