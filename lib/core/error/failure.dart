@@ -1,22 +1,15 @@
 import 'package:dio/dio.dart';
 
-/// Kategori error yang UI-friendly. Screen memilih ikon/perlakuan berdasarkan
-/// ini tanpa perlu tahu soal Dio.
 enum FailureType {
-  noConnection, // tidak ada koneksi sama sekali
-  timeout, // waktu habis menunggu response
-  server, // 5xx — server bermasalah
-  notFound, // 404
-  unauthorized, // 401 / 403
-  cancelled, // request dibatalkan
-  unknown, // selain di atas
+  noConnection,
+  timeout,
+  server,
+  notFound,
+  unauthorized,
+  cancelled,
+  unknown,
 }
 
-/// A normalized, UI-safe error.
-///
-/// Repositories catch low-level [DioException]s and rethrow a [Failure] so
-/// that providers and screens never need to know about Dio. The API wraps
-/// errors as `{ "error": "pesan" }`; [Failure.fromDio] extracts that message.
 class Failure implements Exception {
   const Failure({
     required this.message,
@@ -24,22 +17,15 @@ class Failure implements Exception {
     this.type = FailureType.unknown,
   });
 
-  /// Human-readable message, safe to show to the user.
   final String message;
 
-  /// HTTP status code when the failure originated from a server response.
   final int? statusCode;
 
-  /// Coarse category so the UI can branch (icon, retry affordance, etc.).
   final FailureType type;
 
-  /// Builds a [Failure] from a [DioException], pulling the server's
-  /// `{ "error": "..." }` message when present and mapping transport-level
-  /// problems (timeouts, connectivity) to friendly text + a [FailureType].
   factory Failure.fromDio(DioException e) {
     final response = e.response;
 
-    // Server replied with a body — prefer its "error" field.
     if (response != null) {
       final data = response.data;
       String? serverMessage;
@@ -54,7 +40,6 @@ class Failure implements Exception {
       );
     }
 
-    // No response — transport-level problem.
     switch (e.type) {
       case DioExceptionType.connectionTimeout:
       case DioExceptionType.sendTimeout:
@@ -121,3 +106,7 @@ class Failure implements Exception {
   @override
   String toString() => message;
 }
+
+Failure asFailure(Object? error) => error is Failure
+    ? error
+    : Failure(message: error?.toString() ?? 'Something went wrong.');
