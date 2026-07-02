@@ -5,6 +5,8 @@ import 'package:pixel_pocket/features/salary_period/domain/models/salary_period_
 
 enum ChartUnit { week, month, year }
 
+enum ChartView { line, bar }
+
 class ChartFilter {
   const ChartFilter({this.unit = ChartUnit.month, this.salaryPeriod});
 
@@ -29,6 +31,8 @@ class ChartFilter {
 final chartFilterProvider = StateProvider<ChartFilter>(
   (ref) => const ChartFilter(),
 );
+
+final chartViewProvider = StateProvider<ChartView>((ref) => ChartView.line);
 
 final chartProvider = FutureProvider<ChartData>((ref) {
   final filter = ref.watch(chartFilterProvider);
