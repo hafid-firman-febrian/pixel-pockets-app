@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:pixel_pocket/core/theme/app_color.dart';
 import 'package:pixel_pocket/core/theme/app_spacing.dart';
 import 'package:pixel_pocket/core/theme/app_text_style.dart';
+import 'package:pixel_pocket/core/widgets/pixel_button.dart';
 import 'package:pixel_pocket/core/widgets/pixel_select_chip.dart';
 import 'package:pixel_pocket/features/chart/presentation/states/chart_state.dart';
 import 'package:pixel_pocket/features/salary_period/domain/models/salary_period_model.dart';
@@ -121,7 +122,13 @@ class _PeriodNavigator extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: AppSpacing.s16),
       child: Row(
         children: [
-          _NavArrow(icon: Pixel.chevronleft, onTap: onPrev),
+          PixelButton(
+            onPressed: onPrev,
+            icon: Pixel.chevronleft,
+            variant: PixelButtonVariant.ghost,
+            size: PixelButtonSize.sm,
+            foregroundColor: AppColors.primary,
+          ),
           Expanded(
             child: Text(
               label,
@@ -134,36 +141,16 @@ class _PeriodNavigator extends StatelessWidget {
               ),
             ),
           ),
-          _NavArrow(icon: Pixel.chevronright, onTap: onNext),
+          PixelButton(
+            onPressed: onNext,
+            icon: Pixel.chevronright,
+            variant: PixelButtonVariant.ghost,
+            size: PixelButtonSize.sm,
+            foregroundColor: AppColors.primary,
+          ),
         ],
       ),
     );
   }
 }
 
-class _NavArrow extends StatelessWidget {
-  const _NavArrow({required this.icon, required this.onTap});
-
-  final IconData icon;
-  final VoidCallback? onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final enabled = onTap != null;
-    return InkWell(
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.all(AppSpacing.s4),
-        decoration: BoxDecoration(
-          color: AppColors.surface,
-          border: Border.all(color: AppColors.border),
-        ),
-        child: Icon(
-          icon,
-          size: 18,
-          color: enabled ? AppColors.primary : AppColors.textMuted,
-        ),
-      ),
-    );
-  }
-}
