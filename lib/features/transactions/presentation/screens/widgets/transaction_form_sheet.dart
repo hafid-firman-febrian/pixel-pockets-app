@@ -1,11 +1,12 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import 'package:pixel_pocket/core/error/failure.dart';
 import 'package:pixel_pocket/core/theme/app_color.dart';
 import 'package:pixel_pocket/core/theme/app_spacing.dart';
 import 'package:pixel_pocket/core/theme/app_text_style.dart';
+import 'package:pixel_pocket/core/utils/currency_formatter.dart';
+import 'package:pixel_pocket/core/utils/thousands_input_formatter.dart';
 import 'package:pixel_pocket/core/widgets/pixel_bottom_sheet.dart';
 import 'package:pixel_pocket/core/widgets/pixel_button.dart';
 import 'package:pixel_pocket/core/widgets/pixel_field_label.dart';
@@ -15,20 +16,13 @@ import 'package:pixel_pocket/features/categories/presentation/states/category_st
 import 'package:pixel_pocket/features/transactions/domain/models/transaction_model.dart';
 import 'package:pixel_pocket/features/transactions/presentation/controllers/transaction_controller.dart';
 
-
-
-
-
-
 class TransactionFormSheet extends ConsumerStatefulWidget {
   const TransactionFormSheet({super.key, this.existing});
 
-  
   final TransactionModel? existing;
 
   bool get isEditing => existing != null;
 
-  
   static Future<bool?> show(
     BuildContext context, {
     TransactionModel? existing,
@@ -55,7 +49,7 @@ class _TransactionFormSheetState extends ConsumerState<TransactionFormSheet> {
   late final TextEditingController _amountController;
   late final TextEditingController _descriptionController;
 
-  late String _type; 
+  late String _type;
   late DateTime _date;
   int? _categoryId;
 
@@ -69,14 +63,13 @@ class _TransactionFormSheetState extends ConsumerState<TransactionFormSheet> {
         : _todayFloor();
     _categoryId = existing?.categoryId;
     _amountController = TextEditingController(
-      text: existing != null ? existing.amount.toStringAsFixed(0) : '',
+      text: existing != null ? CurrencyFormatter.input(existing.amount) : '0',
     );
     _descriptionController = TextEditingController(
       text: existing?.description ?? '',
     );
   }
 
-  
   DateTime _todayFloor() {
     final now = DateTime.now();
     return DateTime(now.year, now.month, now.day);
@@ -102,6 +95,30 @@ class _TransactionFormSheetState extends ConsumerState<TransactionFormSheet> {
   List<CategoryModel> _categoriesForType(List<CategoryModel> all) =>
       all.where((c) => c.type == _type).toList();
 
+  static const _quickAmounts = <(String, int)>[
+    ('+5K', 5000),
+    ('+10K', 10000),
+    ('+50K', 50000),
+    ('+100K', 100000),
+  ];
+
+  int _currentAmount() =>
+      CurrencyFormatter.parse(_amountController.text).toInt();
+
+  void _setAmount(int value) {
+    final clamped = value < 0 ? 0 : value;
+    // Zero tampil sebagai "0" (→ "Rp 0"), bukan kosong.
+    final text = clamped == 0
+        ? '0'
+        : CurrencyFormatter.input(clamped.toDouble());
+    _amountController.value = TextEditingValue(
+      text: text,
+      selection: TextSelection.collapsed(offset: text.length),
+    );
+  }
+
+  void _bumpAmount(int delta) => _setAmount(_currentAmount() + delta);
+
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
     if (_categoryId == null) {
@@ -109,11 +126,10 @@ class _TransactionFormSheetState extends ConsumerState<TransactionFormSheet> {
       return;
     }
 
-    final amount = double.parse(_amountController.text.trim());
+    final amount = CurrencyFormatter.parse(_amountController.text);
     final description = _descriptionController.text.trim();
     final controller = ref.read(transactionsControllerProvider.notifier);
 
-    
     final ok = widget.isEditing
         ? await controller.edit(
             id: widget.existing!.id,
@@ -167,15 +183,13 @@ class _TransactionFormSheetState extends ConsumerState<TransactionFormSheet> {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              
               Row(
                 children: [
                   Expanded(
                     child: PixelButton(
                       label: 'EXPENSE',
                       isFullWidth: true,
-                      
-                      
+
                       variant: _type == 'expense'
                           ? PixelButtonVariant.expense
                           : PixelButtonVariant.surface,
@@ -200,19 +214,80 @@ class _TransactionFormSheetState extends ConsumerState<TransactionFormSheet> {
               const SizedBox(height: AppSpacing.section),
 
               const PixelFieldLabel('AMOUNT'),
-              TextFormField(
-                controller: _amountController,
-                keyboardType: TextInputType.number,
-                inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-                style: AppTextStyles.numericMd,
-                decoration: const InputDecoration(prefixText: 'Rp '),
-                validator: (v) {
-                  final value = double.tryParse((v ?? '').trim());
-                  if (value == null || value <= 0) {
-                    return 'Enter a valid amount';
-                  }
-                  return null;
-                },
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  PixelIconButton(
+                    icon: Pixel.minus,
+                    variant: PixelButtonVariant.primary,
+                    onPressed: () => _bumpAmount(-1000),
+                  ),
+                  const SizedBox(width: AppSpacing.s8),
+                  Expanded(
+                    child: TextFormField(
+                      controller: _amountController,
+                      keyboardType: TextInputType.number,
+                      inputFormatters: const [ThousandsInputFormatter()],
+                      style: AppTextStyles.numericMd,
+                      decoration: InputDecoration(
+                        prefixText: 'Rp ',
+                        isDense: true,
+                        contentPadding: const EdgeInsets.symmetric(
+                          horizontal: AppSpacing.s12,
+                          vertical: AppSpacing.s12,
+                        ),
+                        suffixIconConstraints: const BoxConstraints(
+                          minWidth: 34,
+                          minHeight: 34,
+                        ),
+                        suffixIcon: ValueListenableBuilder<TextEditingValue>(
+                          valueListenable: _amountController,
+                          builder: (context, value, _) {
+                            if (CurrencyFormatter.parse(value.text) <= 0) {
+                              return const SizedBox.shrink();
+                            }
+                            return GestureDetector(
+                              onTap: () => _setAmount(0),
+                              behavior: HitTestBehavior.opaque,
+                              child: const Icon(
+                                Pixel.close,
+                                size: 16,
+                                color: AppColors.textMuted,
+                              ),
+                            );
+                          },
+                        ),
+                      ),
+                      validator: (v) {
+                        if (CurrencyFormatter.parse(v ?? '') <= 0) {
+                          return 'Enter a valid amount';
+                        }
+                        return null;
+                      },
+                    ),
+                  ),
+                  const SizedBox(width: AppSpacing.s8),
+                  PixelIconButton(
+                    icon: Pixel.plus,
+                    variant: PixelButtonVariant.primary,
+                    onPressed: () => _bumpAmount(1000),
+                  ),
+                ],
+              ),
+              const SizedBox(height: AppSpacing.s12),
+              Wrap(
+                spacing: AppSpacing.s6,
+                runSpacing: AppSpacing.s6,
+                children: [
+                  for (final (label, value) in _quickAmounts)
+                    PixelButton(
+                      label: label,
+
+                      variant: PixelButtonVariant.surface,
+                      size: PixelButtonSize.sm,
+                      onPressed: () => _bumpAmount(value),
+                    ),
+                ],
               ),
               const SizedBox(height: AppSpacing.section),
 
@@ -269,10 +344,7 @@ class _TransactionFormSheetState extends ConsumerState<TransactionFormSheet> {
               const SizedBox(height: AppSpacing.section),
 
               const PixelFieldLabel('DESCRIPTION (OPTIONAL)'),
-              TextFormField(
-                controller: _descriptionController,
-                maxLines: 2,
-              ),
+              TextFormField(controller: _descriptionController, maxLines: 2),
               const SizedBox(height: AppSpacing.s24),
 
               PixelButton(
@@ -301,7 +373,7 @@ class _TransactionFormSheetState extends ConsumerState<TransactionFormSheet> {
     if (_type == type) return;
     setState(() {
       _type = type;
-      _categoryId = null; 
+      _categoryId = null;
     });
   }
 }
