@@ -23,4 +23,10 @@ class ChartDto {
 
   ChartData toDomain() =>
       ChartData(labels: labels, income: income, expense: expense);
+
+  Map<String, dynamic> toCacheJson() => {
+        'labels': labels,
+        'income': income,
+        'expense': expense,
+      };
 }
