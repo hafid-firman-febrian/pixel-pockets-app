@@ -4,17 +4,23 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:pixel_pocket/core/theme/app_color.dart';
 import 'package:pixel_pocket/features/auth/presentation/controllers/auth_controller.dart';
 import 'package:pixel_pocket/features/auth/presentation/states/auth_state.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:skeletonizer/skeletonizer.dart';
 
+import 'core/cache/cache_store.dart';
 import 'core/router/app_router.dart';
 import 'core/theme/app_theme.dart';
 
-void main() {
+void main() async {
   final binding = WidgetsFlutterBinding.ensureInitialized();
-  // Keep the native splash on screen until the auth state resolves, so the
-  // icon shows exactly once (native) instead of flashing again in Dart.
   FlutterNativeSplash.preserve(widgetsBinding: binding);
-  runApp(const ProviderScope(child: PixelPocketApp()));
+  final prefs = await SharedPreferences.getInstance();
+  runApp(
+    ProviderScope(
+      overrides: [sharedPreferencesProvider.overrideWithValue(prefs)],
+      child: const PixelPocketApp(),
+    ),
+  );
 }
 
 class PixelPocketApp extends ConsumerWidget {

@@ -62,6 +62,9 @@ dependencies:
   # Native launch screen (preserve/remove API used at runtime in main.dart)
   flutter_native_splash: ^2.4.3
 
+  # Local cache for offline read (JSON key-value)
+  shared_preferences: ^2.3.2
+
 dev_dependencies:
   flutter_test:
     sdk: flutter
