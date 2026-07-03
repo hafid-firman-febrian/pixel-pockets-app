@@ -33,4 +33,12 @@ class SalaryPeriodDto {
     endDate: endDate,
     salaryAmount: salaryAmount,
   );
+
+  Map<String, dynamic> toCacheJson() => {
+    'id': id,
+    'name': name,
+    'startDate': startDate,
+    'endDate': endDate,
+    'salaryAmount': salaryAmount,
+  };
 }
