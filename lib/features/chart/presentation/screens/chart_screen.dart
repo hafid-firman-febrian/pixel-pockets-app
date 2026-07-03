@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:pixel_pocket/core/error/failure.dart';
 import 'package:pixel_pocket/core/theme/app_color.dart';
 import 'package:pixel_pocket/core/theme/app_spacing.dart';
 import 'package:pixel_pocket/core/theme/app_text_style.dart';
 import 'package:pixel_pocket/core/widgets/pixel_card.dart';
+import 'package:pixel_pocket/core/widgets/pixel_error_view.dart';
 import 'package:pixel_pocket/features/chart/domain/models/chart_data.dart';
 import 'package:pixel_pocket/features/chart/presentation/screens/widgets/chart_filter_bar.dart';
 import 'package:pixel_pocket/features/chart/presentation/screens/widgets/chart_summary_row.dart';
@@ -34,27 +36,33 @@ class ChartScreen extends ConsumerWidget {
               padding: AppSpacing.card,
               child: Divider(color: AppColors.border, thickness: 1),
             ),
-            Expanded(
-              child: SingleChildScrollView(
-                padding: const EdgeInsets.fromLTRB(
-                  AppSpacing.s16,
-                  0,
-                  AppSpacing.s16,
-                  AppSpacing.s24,
-                ),
-                child: _chartSection(chartAsync),
-              ),
-            ),
+            Expanded(child: _chartBody(chartAsync, ref)),
           ],
         ),
       ),
     );
   }
 
-  Widget _chartSection(AsyncValue<ChartData> chartAsync) {
+  Widget _chartBody(AsyncValue<ChartData> chartAsync, WidgetRef ref) {
     if (chartAsync.hasError && !chartAsync.hasValue) {
-      return const _CardMessage('Failed to load chart.');
+      return PixelErrorView(
+        failure: asFailure(chartAsync.error),
+        onRetry: () => ref.invalidate(chartProvider),
+        fill: true,
+      );
     }
+    return SingleChildScrollView(
+      padding: const EdgeInsets.fromLTRB(
+        AppSpacing.s16,
+        0,
+        AppSpacing.s16,
+        AppSpacing.s24,
+      ),
+      child: _chartSection(chartAsync),
+    );
+  }
+
+  Widget _chartSection(AsyncValue<ChartData> chartAsync) {
     final data = chartAsync.valueOrNull;
     if (chartAsync.isLoading && data == null) {
       return const _ChartLoading();

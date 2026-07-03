@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:pixel_pocket/core/error/failure.dart';
 import 'package:pixel_pocket/core/theme/app_color.dart';
 import 'package:pixel_pocket/core/theme/app_spacing.dart';
 import 'package:pixel_pocket/core/theme/app_text_style.dart';
 import 'package:pixel_pocket/core/widgets/pixel_bottom_sheet.dart';
 import 'package:pixel_pocket/core/widgets/pixel_button.dart';
+import 'package:pixel_pocket/core/widgets/pixel_error_view.dart';
 import 'package:pixel_pocket/features/dashboard/presentation/controllers/category_transactions_controller.dart';
 import 'package:pixel_pocket/features/transactions/domain/models/transaction_model.dart';
 import 'package:pixel_pocket/features/transactions/presentation/screens/widgets/transaction_list_item.dart';
@@ -73,8 +75,12 @@ class _CategoryTransactionsSheetState
     return PixelBottomSheetFrame(
       title: widget.categoryName.toUpperCase(),
       child: switch (async) {
-        AsyncValue(:final error?) when !async.hasValue => _Message(
-          'Failed to load transactions.\n$error',
+        AsyncValue(:final error?) when !async.hasValue => PixelErrorView(
+          failure: asFailure(error),
+          onRetry: () => ref.invalidate(
+            categoryTransactionsControllerProvider(widget.categoryId),
+          ),
+          compact: true,
         ),
         AsyncValue(:final value?) => _buildList(value),
         _ => const _LoadingList(),

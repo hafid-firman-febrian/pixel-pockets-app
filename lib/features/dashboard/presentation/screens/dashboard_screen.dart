@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:pixel_pocket/core/error/failure.dart';
 import 'package:pixel_pocket/core/router/app_router.dart';
 import 'package:pixel_pocket/core/theme/app_color.dart';
 import 'package:pixel_pocket/core/theme/app_sizing.dart';
@@ -9,6 +10,7 @@ import 'package:pixel_pocket/core/theme/app_text_style.dart';
 import 'package:pixel_pocket/core/widgets/pixel_button.dart';
 import 'package:pixel_pocket/core/widgets/pixel_card.dart';
 import 'package:pixel_pocket/core/widgets/pixel_confirm_dialog.dart';
+import 'package:pixel_pocket/core/widgets/pixel_error_view.dart';
 import 'package:pixel_pocket/features/auth/presentation/controllers/auth_controller.dart';
 import 'package:pixel_pocket/features/dashboard/domain/models/category_summary.dart';
 import 'package:pixel_pocket/features/dashboard/domain/models/transaction_summary.dart';
@@ -37,72 +39,84 @@ class DashboardScreen extends ConsumerWidget {
     final summaryAsync = ref.watch(dashboardSummaryProvider);
     final byCategoryAsync = ref.watch(expensesByCategoryProvider);
     final recentAsync = ref.watch(recentTransactionsProvider);
+
+    // Every section failed (typically offline): collapse the three inline
+    // errors into one centered error with a single retry.
+    final allFailed =
+        summaryAsync.hasError &&
+        !summaryAsync.hasValue &&
+        byCategoryAsync.hasError &&
+        !byCategoryAsync.hasValue &&
+        recentAsync.hasError &&
+        !recentAsync.hasValue;
+
     return SafeArea(
       child: Scaffold(
         body: RefreshIndicator(
           onRefresh: () => _refresh(ref),
           color: AppColors.primary,
           backgroundColor: AppColors.surface,
-          child: ListView(
-            padding: EdgeInsets.symmetric(vertical: AppSpacing.section),
-            physics: const AlwaysScrollableScrollPhysics(),
-            children: [
-              Padding(
-                padding: AppSpacing.card,
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          child: allFailed
+              ? _OfflineBody(
+                  onLogout: () => _confirmLogout(context, ref),
+                  failure: asFailure(summaryAsync.error),
+                  onRetry: () => _refresh(ref),
+                )
+              : ListView(
+                  padding: EdgeInsets.symmetric(vertical: AppSpacing.section),
+                  physics: const AlwaysScrollableScrollPhysics(),
                   children: [
-                    Text(
-                      '~\$ Pixel-Pocket',
-                      style: AppTextStyles.displayMedium,
+                    _DashboardHeader(
+                      onLogout: () => _confirmLogout(context, ref),
                     ),
-                    PixelButton(
-                      onPressed: () => _confirmLogout(context, ref),
-                      variant: PixelButtonVariant.danger,
-                      icon: Pixel.logout,
-                      size: PixelButtonSize.sm,
-                    ),
-                  ],
-                ),
-              ),
-              SizedBox(height: AppSpacing.section),
-              const PeriodFilterCard(),
-              SizedBox(height: AppSpacing.section),
-              Padding(
-                padding: AppSpacing.screen,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    if (summaryAsync.hasError && !summaryAsync.hasValue)
-                      Padding(
-                        padding: AppSpacing.card,
-                        child: const Text('Failed to load summary.'),
-                      )
-                    else
-                      Skeletonizer(
-                        enabled:
-                            summaryAsync.isLoading && !summaryAsync.hasValue,
-                        child: TransactionSummaryCard(
-                          summary:
-                              summaryAsync.valueOrNull ?? _placeholderSummary,
-                        ),
+                    SizedBox(height: AppSpacing.section),
+                    const PeriodFilterCard(),
+                    SizedBox(height: AppSpacing.section),
+                    Padding(
+                      padding: AppSpacing.screen,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          if (summaryAsync.hasError && !summaryAsync.hasValue)
+                            PixelErrorView(
+                              failure: asFailure(summaryAsync.error),
+                              onRetry: () =>
+                                  ref.invalidate(dashboardSummaryProvider),
+                              compact: true,
+                            )
+                          else
+                            Skeletonizer(
+                              enabled:
+                                  summaryAsync.isLoading &&
+                                  !summaryAsync.hasValue,
+                              child: TransactionSummaryCard(
+                                summary:
+                                    summaryAsync.valueOrNull ??
+                                    _placeholderSummary,
+                              ),
+                            ),
+                          SizedBox(height: AppSpacing.section),
+                          Text(
+                            'EXPENSES BY CATEGORY',
+                            style: AppTextStyles.bodyNormal,
+                          ),
+                          SizedBox(height: AppSpacing.section),
+                          _ExpensesByCategorySection(
+                            byCategoryAsync: byCategoryAsync,
+                            onRetry: () =>
+                                ref.invalidate(expensesByCategoryProvider),
+                          ),
+                          SizedBox(height: AppSpacing.section),
+                          _RecentTransactionsSection(
+                            recentAsync: recentAsync,
+                            onRetry: () =>
+                                ref.invalidate(recentTransactionsProvider),
+                          ),
+                        ],
                       ),
-                    SizedBox(height: AppSpacing.section),
-                    Text(
-                      'EXPENSES BY CATEGORY',
-                      style: AppTextStyles.bodyNormal,
                     ),
-                    SizedBox(height: AppSpacing.section),
-                    _ExpensesByCategorySection(
-                      byCategoryAsync: byCategoryAsync,
-                    ),
-                    SizedBox(height: AppSpacing.section),
-                    _RecentTransactionsSection(recentAsync: recentAsync),
                   ],
                 ),
-              ),
-            ],
-          ),
         ),
       ),
     );
@@ -130,12 +144,73 @@ class DashboardScreen extends ConsumerWidget {
   }
 }
 
+/// App title + logout button. Shared between the normal and offline layouts so
+/// the header stays identical in both.
+class _DashboardHeader extends StatelessWidget {
+  const _DashboardHeader({required this.onLogout});
+
+  final VoidCallback onLogout;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: AppSpacing.card,
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text('~\$ Pixel-Pocket', style: AppTextStyles.displayMedium),
+          PixelButton(
+            onPressed: onLogout,
+            variant: PixelButtonVariant.danger,
+            icon: Pixel.logout,
+            size: PixelButtonSize.sm,
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Shown when every dashboard section failed (typically offline): keeps the
+/// header + period filter, then one centered error with a single retry that
+/// refreshes all sections at once.
+class _OfflineBody extends StatelessWidget {
+  const _OfflineBody({
+    required this.onLogout,
+    required this.failure,
+    required this.onRetry,
+  });
+
+  final VoidCallback onLogout;
+  final Failure failure;
+  final VoidCallback onRetry;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: [
+        SizedBox(height: AppSpacing.section),
+        _DashboardHeader(onLogout: onLogout),
+        SizedBox(height: AppSpacing.section),
+        const PeriodFilterCard(),
+        Expanded(
+          child: PixelErrorView(failure: failure, onRetry: onRetry, fill: true),
+        ),
+      ],
+    );
+  }
+}
+
 /// Header row ("RECENT" + Show all) plus the recent-transactions list with
 /// loading / error / empty states. "Show all" switches to the Transactions tab.
 class _RecentTransactionsSection extends StatelessWidget {
-  const _RecentTransactionsSection({required this.recentAsync});
+  const _RecentTransactionsSection({
+    required this.recentAsync,
+    required this.onRetry,
+  });
 
   final AsyncValue<List<TransactionModel>> recentAsync;
+  final VoidCallback onRetry;
 
   @override
   Widget build(BuildContext context) {
@@ -178,7 +253,11 @@ class _RecentTransactionsSection extends StatelessWidget {
 
   Widget _buildContent() {
     if (recentAsync.hasError && !recentAsync.hasValue) {
-      return const _CardMessage('Failed to load transactions.');
+      return PixelErrorView(
+        failure: asFailure(recentAsync.error),
+        onRetry: onRetry,
+        compact: true,
+      );
     }
     final items = recentAsync.valueOrNull;
     if (recentAsync.isLoading && items == null) {
@@ -192,14 +271,22 @@ class _RecentTransactionsSection extends StatelessWidget {
 }
 
 class _ExpensesByCategorySection extends StatelessWidget {
-  const _ExpensesByCategorySection({required this.byCategoryAsync});
+  const _ExpensesByCategorySection({
+    required this.byCategoryAsync,
+    required this.onRetry,
+  });
 
   final AsyncValue<List<CategorySummary>> byCategoryAsync;
+  final VoidCallback onRetry;
 
   @override
   Widget build(BuildContext context) {
     if (byCategoryAsync.hasError && !byCategoryAsync.hasValue) {
-      return const _CardMessage('Failed to load category breakdown.');
+      return PixelErrorView(
+        failure: asFailure(byCategoryAsync.error),
+        onRetry: onRetry,
+        compact: true,
+      );
     }
 
     final items = byCategoryAsync.valueOrNull;

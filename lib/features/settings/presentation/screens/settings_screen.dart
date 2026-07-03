@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:pixel_pocket/core/error/failure.dart';
 import 'package:pixel_pocket/core/theme/app_color.dart';
 import 'package:pixel_pocket/core/theme/app_spacing.dart';
 import 'package:pixel_pocket/core/theme/app_text_style.dart';
@@ -7,6 +8,7 @@ import 'package:pixel_pocket/core/widgets/pixel_button.dart';
 import 'package:pixel_pocket/core/widgets/pixel_card.dart';
 import 'package:pixel_pocket/core/widgets/pixel_chip.dart';
 import 'package:pixel_pocket/core/widgets/pixel_confirm_dialog.dart';
+import 'package:pixel_pocket/core/widgets/pixel_error_view.dart';
 import 'package:pixel_pocket/features/auth/presentation/controllers/pin_controller.dart';
 import 'package:pixel_pocket/features/categories/domain/models/category_model.dart';
 import 'package:pixel_pocket/features/categories/presentation/controllers/category_controller.dart';
@@ -24,6 +26,17 @@ class SettingsScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final salaryAsync = ref.watch(salaryPeriodProvider);
+    final categoriesAsync = ref.watch(categoriesProvider);
+
+    // Both data sections failed (typically offline): collapse the two inline
+    // errors into one centered error with a single retry.
+    final allFailed =
+        salaryAsync.hasError &&
+        !salaryAsync.hasValue &&
+        categoriesAsync.hasError &&
+        !categoriesAsync.hasValue;
+
     return SafeArea(
       child: Scaffold(
         body: Column(
@@ -35,23 +48,32 @@ class SettingsScreen extends ConsumerWidget {
               child: Text('SETTINGS', style: AppTextStyles.displayMedium),
             ),
             Expanded(
-              child: ListView(
-                padding: const EdgeInsets.fromLTRB(
-                  AppSpacing.s16,
-                  AppSpacing.section,
-                  AppSpacing.s16,
-                  AppSpacing.s16,
-                ),
-                children: [
-                  const _SectionLabel('DATA'),
-                  const _SalaryPeriodSection(),
-                  const SizedBox(height: AppSpacing.section),
-                  const _CategorySection(),
-                  const SizedBox(height: AppSpacing.section),
-                  const _SectionLabel('SECURITY'),
-                  _ResetPinTile(onTap: () => _resetPin(context, ref)),
-                ],
-              ),
+              child: allFailed
+                  ? PixelErrorView(
+                      failure: asFailure(salaryAsync.error),
+                      onRetry: () {
+                        ref.invalidate(salaryPeriodProvider);
+                        ref.invalidate(categoriesProvider);
+                      },
+                      fill: true,
+                    )
+                  : ListView(
+                      padding: const EdgeInsets.fromLTRB(
+                        AppSpacing.s16,
+                        AppSpacing.section,
+                        AppSpacing.s16,
+                        AppSpacing.s16,
+                      ),
+                      children: [
+                        const _SectionLabel('DATA'),
+                        const _SalaryPeriodSection(),
+                        const SizedBox(height: AppSpacing.section),
+                        const _CategorySection(),
+                        const SizedBox(height: AppSpacing.section),
+                        const _SectionLabel('SECURITY'),
+                        _ResetPinTile(onTap: () => _resetPin(context, ref)),
+                      ],
+                    ),
             ),
           ],
         ),
@@ -87,7 +109,11 @@ class _SalaryPeriodSection extends ConsumerWidget {
       onAdd: () => _open(context),
       child: async.when(
         loading: () => const _ChipsLoading(),
-        error: (e, _) => const _LoadError(),
+        error: (e, _) => PixelErrorView(
+          failure: asFailure(e),
+          onRetry: () => ref.invalidate(salaryPeriodProvider),
+          compact: true,
+        ),
         data: (periods) => periods.isEmpty
             ? const _EmptyHint('No salary periods yet')
             : _grouped(context, ref, periods),
@@ -192,7 +218,11 @@ class _CategorySection extends ConsumerWidget {
       onAdd: () => _open(context),
       child: async.when(
         loading: () => const _ChipsLoading(),
-        error: (e, _) => const _LoadError(),
+        error: (e, _) => PixelErrorView(
+          failure: asFailure(e),
+          onRetry: () => ref.invalidate(categoriesProvider),
+          compact: true,
+        ),
         data: (categories) => categories.isEmpty
             ? const _EmptyHint('No categories yet')
             : _grouped(context, ref, categories),
@@ -336,13 +366,6 @@ class _ChipsLoading extends StatelessWidget {
       ),
     );
   }
-}
-
-class _LoadError extends StatelessWidget {
-  const _LoadError();
-
-  @override
-  Widget build(BuildContext context) => const _EmptyHint('Failed to load');
 }
 
 class _EmptyHint extends StatelessWidget {

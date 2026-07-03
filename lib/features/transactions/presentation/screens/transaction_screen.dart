@@ -11,6 +11,7 @@ import 'package:pixel_pocket/core/utils/currency_formatter.dart';
 import 'package:pixel_pocket/core/widgets/pixel_button.dart';
 import 'package:pixel_pocket/core/widgets/pixel_card.dart';
 import 'package:pixel_pocket/core/widgets/pixel_confirm_dialog.dart';
+import 'package:pixel_pocket/core/widgets/pixel_error_view.dart';
 import 'package:pixel_pocket/features/categories/presentation/states/category_state.dart';
 import 'package:pixel_pocket/features/transactions/domain/models/transaction_model.dart';
 import 'package:pixel_pocket/features/transactions/presentation/controllers/transaction_controller.dart';
@@ -52,13 +53,8 @@ class TransactionScreen extends ConsumerWidget {
               child: transactionsAsync.isLoading
                   ? const _ListSkeleton()
                   : switch (transactionsAsync) {
-                      AsyncValue(:final error?) => _ErrorView(
-                        message: error is Failure
-                            ? error.message
-                            : error.toString(),
-                        type: error is Failure
-                            ? error.type
-                            : FailureType.unknown,
+                      AsyncValue(:final error?) => PixelErrorView(
+                        failure: asFailure(error),
                         onRetry: () =>
                             ref.invalidate(transactionsControllerProvider),
                       ),
@@ -305,7 +301,10 @@ class _SearchFieldState extends ConsumerState<_SearchField> {
           size: 16,
           color: AppColors.textMuted,
         ),
-        prefixIconConstraints: const BoxConstraints(minWidth: 32, minHeight: 32),
+        prefixIconConstraints: const BoxConstraints(
+          minWidth: 32,
+          minHeight: 32,
+        ),
         suffixIcon: _controller.text.isEmpty
             ? null
             : InkWell(
@@ -316,7 +315,10 @@ class _SearchFieldState extends ConsumerState<_SearchField> {
                   color: AppColors.textMuted,
                 ),
               ),
-        suffixIconConstraints: const BoxConstraints(minWidth: 32, minHeight: 32),
+        suffixIconConstraints: const BoxConstraints(
+          minWidth: 32,
+          minHeight: 32,
+        ),
       ),
     );
   }
@@ -479,57 +481,6 @@ class _EmptyView extends StatelessWidget {
           style: TextStyle(color: AppColors.textMuted),
         ),
       ],
-    );
-  }
-}
-
-class _ErrorView extends StatelessWidget {
-  const _ErrorView({
-    required this.message,
-    required this.type,
-    required this.onRetry,
-  });
-
-  final String message;
-  final FailureType type;
-  final VoidCallback onRetry;
-
-  IconData get _icon {
-    switch (type) {
-      case FailureType.noConnection:
-        return Pixel.downasaur;
-      case FailureType.timeout:
-        return Pixel.hourglass;
-      case FailureType.server:
-        return Pixel.server;
-      case FailureType.notFound:
-      case FailureType.unauthorized:
-      case FailureType.cancelled:
-      case FailureType.unknown:
-        return Pixel.cellularsignaloff;
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(AppSpacing.s24),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(_icon, size: 48, color: AppColors.textMuted),
-            const SizedBox(height: AppSpacing.s12),
-            Text(message, textAlign: TextAlign.center),
-            const SizedBox(height: AppSpacing.section),
-            PixelButton(
-              onPressed: onRetry,
-              icon: Pixel.reload,
-              label: 'Try Again',
-            ),
-          ],
-        ),
-      ),
     );
   }
 }
