@@ -24,4 +24,11 @@ class CategoryDto {
 
   CategoryModel toDomain() =>
       CategoryModel(id: id, name: name, color: color, type: type);
+
+  Map<String, dynamic> toCacheJson() => {
+        'id': id,
+        'name': name,
+        'color': color,
+        'type': type,
+      };
 }
