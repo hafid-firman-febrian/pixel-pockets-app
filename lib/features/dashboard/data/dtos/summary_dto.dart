@@ -27,4 +27,11 @@ class SummaryDto {
         balance: balance,
         transactionCount: transactionCount,
       );
+
+  Map<String, dynamic> toCacheJson() => {
+        'total_income': totalIncome,
+        'total_expense': totalExpense,
+        'balance': balance,
+        'transaction_count': transactionCount,
+      };
 }

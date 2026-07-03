@@ -40,4 +40,14 @@ class CategorySummaryDto {
         percentage: percentage,
         count: count,
       );
+
+  Map<String, dynamic> toCacheJson() => {
+        'category_id': categoryId,
+        'category_name': name,
+        'category_color': color,
+        'transaction_type': type,
+        'total': total,
+        'percentage': percentage,
+        'count': count,
+      };
 }
