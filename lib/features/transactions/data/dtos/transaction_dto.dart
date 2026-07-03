@@ -1,7 +1,5 @@
 import 'package:pixel_pocket/features/transactions/domain/models/transaction_model.dart';
 
-/// Wire representation of a transaction. Owns all JSON so the domain model
-/// stays pure. The API returns camelCase but accepts snake_case on write.
 class TransactionDto {
   final int id;
   final String transactionDate;
@@ -28,50 +26,62 @@ class TransactionDto {
   });
 
   factory TransactionDto.fromJson(Map<String, dynamic> json) => TransactionDto(
-        id: json['id'] as int,
-        transactionDate: json['transactionDate'] as String,
-        transactionType: json['transactionType'] as String,
-        amount: (json['amount'] as num).toDouble(),
-        categoryId: json['categoryId'] as int?,
-        description: json['description'] as String?,
-        categoryName: json['categoryName'] as String?,
-        categoryColor: json['categoryColor'] as String?,
-        createdAt: json['createdAt'] as String?,
-        updatedAt: json['updatedAt'] as String?,
-      );
+    id: json['id'] as int,
+    transactionDate: json['transactionDate'] as String,
+    transactionType: json['transactionType'] as String,
+    amount: (json['amount'] as num).toDouble(),
+    categoryId: json['categoryId'] as int?,
+    description: json['description'] as String?,
+    categoryName: json['categoryName'] as String?,
+    categoryColor: json['categoryColor'] as String?,
+    createdAt: json['createdAt'] as String?,
+    updatedAt: json['updatedAt'] as String?,
+  );
 
   factory TransactionDto.fromDomain(TransactionModel m) => TransactionDto(
-        id: m.id,
-        transactionDate: m.transactionDate,
-        transactionType: m.transactionType,
-        amount: m.amount,
-        categoryId: m.categoryId,
-        description: m.description,
-        categoryName: m.categoryName,
-        categoryColor: m.categoryColor,
-        createdAt: m.createdAt,
-        updatedAt: m.updatedAt,
-      );
+    id: m.id,
+    transactionDate: m.transactionDate,
+    transactionType: m.transactionType,
+    amount: m.amount,
+    categoryId: m.categoryId,
+    description: m.description,
+    categoryName: m.categoryName,
+    categoryColor: m.categoryColor,
+    createdAt: m.createdAt,
+    updatedAt: m.updatedAt,
+  );
 
-  /// Write payload (snake_case). Only fields the API accepts on write.
   Map<String, dynamic> toJson() => {
-        'transaction_date': transactionDate,
-        'transaction_type': transactionType,
-        'amount': amount,
-        if (categoryId != null) 'category_id': categoryId,
-        if (description != null) 'description': description,
-      };
+    'transaction_date': transactionDate,
+    'transaction_type': transactionType,
+    'amount': amount,
+    if (categoryId != null) 'category_id': categoryId,
+    if (description != null) 'description': description,
+  };
+
+  Map<String, dynamic> toCacheJson() => {
+    'id': id,
+    'transactionDate': transactionDate,
+    'transactionType': transactionType,
+    'amount': amount,
+    'categoryId': categoryId,
+    'description': description,
+    'categoryName': categoryName,
+    'categoryColor': categoryColor,
+    'createdAt': createdAt,
+    'updatedAt': updatedAt,
+  };
 
   TransactionModel toDomain() => TransactionModel(
-        id: id,
-        transactionDate: transactionDate,
-        transactionType: transactionType,
-        amount: amount,
-        categoryId: categoryId,
-        description: description,
-        categoryName: categoryName,
-        categoryColor: categoryColor,
-        createdAt: createdAt,
-        updatedAt: updatedAt,
-      );
+    id: id,
+    transactionDate: transactionDate,
+    transactionType: transactionType,
+    amount: amount,
+    categoryId: categoryId,
+    description: description,
+    categoryName: categoryName,
+    categoryColor: categoryColor,
+    createdAt: createdAt,
+    updatedAt: updatedAt,
+  );
 }

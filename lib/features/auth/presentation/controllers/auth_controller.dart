@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:pixel_pocket/core/cache/cache_store.dart';
 import 'package:pixel_pocket/core/error/failure.dart';
 import 'package:pixel_pocket/features/auth/application/services/auth_service.dart';
 import 'package:pixel_pocket/features/auth/application/services/pin_service.dart';
@@ -90,6 +91,9 @@ class AuthController extends Notifier<AuthState> {
     } finally {
       try {
         await _service.signOut();
+      } catch (_) {}
+      try {
+        await ref.read(cacheStoreProvider).clearAll();
       } catch (_) {}
       state = const AuthSignedOut();
       ref.invalidate(transactionsControllerProvider);
