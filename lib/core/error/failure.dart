@@ -110,3 +110,10 @@ class Failure implements Exception {
 Failure asFailure(Object? error) => error is Failure
     ? error
     : Failure(message: error?.toString() ?? 'Something went wrong.');
+
+bool isConnectivityError(DioException e) =>
+    e.response == null &&
+    (e.type == DioExceptionType.connectionError ||
+        e.type == DioExceptionType.connectionTimeout ||
+        e.type == DioExceptionType.sendTimeout ||
+        e.type == DioExceptionType.receiveTimeout);

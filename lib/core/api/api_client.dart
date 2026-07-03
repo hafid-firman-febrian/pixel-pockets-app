@@ -5,8 +5,10 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../features/auth/data/repositories/auth_session_repository.dart';
+import '../network/network_status.dart';
 import 'api_endpoints.dart';
 import 'auth_interceptor.dart';
+import 'connectivity_interceptor.dart';
 
 final apiClientProvider = Provider<ApiClient>((ref) {
   final client = ApiClient();
@@ -14,6 +16,13 @@ final apiClientProvider = Provider<ApiClient>((ref) {
   client.dio.interceptors.insert(
     0,
     AuthInterceptor(gateway, retry: (options) => client.dio.fetch(options)),
+  );
+  final network = ref.read(networkStatusProvider.notifier);
+  client.dio.interceptors.add(
+    ConnectivityInterceptor(
+      onOnline: network.setOnline,
+      onOffline: network.setOffline,
+    ),
   );
   return client;
 });
