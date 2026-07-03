@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:pixel_pocket/core/widgets/pixel_bottom_nav.dart';
+import 'package:pixel_pocket/core/widgets/pixel_offline_banner.dart';
 import 'package:pixel_pocket/features/chart/presentation/screens/chart_screen.dart';
 import 'package:pixel_pocket/features/dashboard/presentation/screens/dashboard_screen.dart';
 import 'package:pixel_pocket/features/settings/presentation/screens/settings_screen.dart';
@@ -167,7 +168,12 @@ class AppShell extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: shell,
+      body: SafeArea(
+        bottom: false,
+        child: Column(
+          children: [const PixelOfflineBanner(), Expanded(child: shell)],
+        ),
+      ),
       bottomNavigationBar: PixelBottomNav(
         items: _navItems,
         currentIndex: shell.currentIndex,
