@@ -1,6 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:pixel_pocket/features/backup/application/services/backup_service.dart';
 import 'package:pixel_pocket/features/backup/presentation/states/backup_state.dart';
+import 'package:pixel_pocket/features/categories/presentation/states/category_state.dart';
 import 'package:pixel_pocket/features/dashboard/presentation/states/dashboard_state.dart';
 import 'package:pixel_pocket/features/salary_period/presentation/states/salary_period_state.dart';
 import 'package:pixel_pocket/features/transactions/presentation/controllers/transaction_controller.dart';
@@ -28,6 +29,7 @@ class BackupController extends AutoDisposeAsyncNotifier<void> {
   }
 
   void _invalidateData() {
+    ref.invalidate(categoriesProvider);
     ref.invalidate(transactionsControllerProvider);
     ref.invalidate(dashboardSummaryProvider);
     ref.invalidate(expensesByCategoryProvider);
