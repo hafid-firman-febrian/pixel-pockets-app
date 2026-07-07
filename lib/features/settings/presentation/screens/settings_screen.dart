@@ -10,6 +10,7 @@ import 'package:pixel_pocket/core/widgets/pixel_chip.dart';
 import 'package:pixel_pocket/core/widgets/pixel_confirm_dialog.dart';
 import 'package:pixel_pocket/core/widgets/pixel_error_view.dart';
 import 'package:pixel_pocket/features/auth/presentation/controllers/pin_controller.dart';
+import 'package:pixel_pocket/features/backup/presentation/controllers/import_controller.dart';
 import 'package:pixel_pocket/features/categories/domain/models/category_model.dart';
 import 'package:pixel_pocket/features/categories/presentation/controllers/category_controller.dart';
 import 'package:pixel_pocket/features/categories/presentation/screens/widgets/category_form_sheet.dart';
@@ -69,6 +70,9 @@ class SettingsScreen extends ConsumerWidget {
                         const _SalaryPeriodSection(),
                         const SizedBox(height: AppSpacing.section),
                         const _CategorySection(),
+                        const SizedBox(height: AppSpacing.section),
+                        const _SectionLabel('BACKUP'),
+                        const _ImportFromServerTile(),
                         const SizedBox(height: AppSpacing.section),
                         const _SectionLabel('SECURITY'),
                         _ResetPinTile(onTap: () => _resetPin(context, ref)),
@@ -397,6 +401,65 @@ class _SectionLabel extends StatelessWidget {
         style: AppTextStyles.overlineSm.copyWith(color: AppColors.textMuted),
       ),
     );
+  }
+}
+
+class _ImportFromServerTile extends ConsumerWidget {
+  const _ImportFromServerTile();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final isLoading = ref.watch(importControllerProvider).isLoading;
+
+    return PixelCard(
+      onTap: isLoading ? null : () => _import(context, ref),
+      padding: AppSpacing.card,
+      child: Row(
+        children: [
+          const Icon(Pixel.server, size: 20, color: AppColors.primary),
+          const SizedBox(width: AppSpacing.s12),
+          Expanded(
+            child: Text('Import from server', style: AppTextStyles.bodyNormal),
+          ),
+          if (isLoading)
+            const SizedBox(
+              width: 18,
+              height: 18,
+              child: CircularProgressIndicator(strokeWidth: 2),
+            )
+          else
+            const Icon(
+              Pixel.chevronright,
+              size: 18,
+              color: AppColors.textMuted,
+            ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _import(BuildContext context, WidgetRef ref) async {
+    final messenger = ScaffoldMessenger.of(context);
+    await ref.read(importControllerProvider.notifier).run();
+    ref
+        .read(importControllerProvider)
+        .when(
+          data: (r) {
+            if (r == null) return;
+            messenger.showSnackBar(
+              SnackBar(content: Text('Imported: ${r.transactions} transaksi')),
+            );
+          },
+          error: (e, _) {
+            messenger.showSnackBar(
+              SnackBar(
+                content: Text(asFailure(e).toString()),
+                backgroundColor: AppColors.expense,
+              ),
+            );
+          },
+          loading: () {},
+        );
   }
 }
 
