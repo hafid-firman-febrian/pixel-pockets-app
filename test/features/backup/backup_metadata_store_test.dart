@@ -24,4 +24,24 @@ void main() {
     expect(store.spreadsheetId, isNull);
     expect(store.lastBackupAt, isNull);
   });
+
+  test('pendingBackup defaults false, persists, and clears', () async {
+    final prefs = await SharedPreferences.getInstance();
+    final store = BackupMetadataStore(prefs);
+    expect(store.pendingBackup, false);
+    await store.setPendingBackup(true);
+    expect(store.pendingBackup, true);
+    await store.clear();
+    expect(store.pendingBackup, false);
+  });
+
+  test('autoBackupEnabled defaults true, persists, and clears back to true', () async {
+    final prefs = await SharedPreferences.getInstance();
+    final store = BackupMetadataStore(prefs);
+    expect(store.autoBackupEnabled, true);
+    await store.setAutoBackupEnabled(false);
+    expect(store.autoBackupEnabled, false);
+    await store.clear();
+    expect(store.autoBackupEnabled, true);
+  });
 }

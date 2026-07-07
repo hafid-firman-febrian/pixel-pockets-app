@@ -10,6 +10,8 @@ class BackupMetadataStore {
   static const _kSpreadsheetId = 'backup_spreadsheet_id';
   static const _kEmail = 'backup_account_email';
   static const _kLastBackup = 'backup_last_at';
+  static const _kPending = 'backup_pending';
+  static const _kAutoEnabled = 'backup_auto_enabled';
 
   String? get spreadsheetId => _prefs.getString(_kSpreadsheetId);
   String? get accountEmail => _prefs.getString(_kEmail);
@@ -17,6 +19,9 @@ class BackupMetadataStore {
     final s = _prefs.getString(_kLastBackup);
     return s == null ? null : DateTime.tryParse(s);
   }
+
+  bool get pendingBackup => _prefs.getBool(_kPending) ?? false;
+  bool get autoBackupEnabled => _prefs.getBool(_kAutoEnabled) ?? true;
 
   bool get isConnected => spreadsheetId != null;
 
@@ -39,10 +44,16 @@ class BackupMetadataStore {
   Future<void> setLastBackupAt(DateTime at) =>
       _prefs.setString(_kLastBackup, at.toIso8601String());
 
+  Future<void> setPendingBackup(bool v) => _prefs.setBool(_kPending, v);
+  Future<void> setAutoBackupEnabled(bool v) =>
+      _prefs.setBool(_kAutoEnabled, v);
+
   Future<void> clear() async {
     await _prefs.remove(_kSpreadsheetId);
     await _prefs.remove(_kEmail);
     await _prefs.remove(_kLastBackup);
+    await _prefs.remove(_kPending);
+    await _prefs.remove(_kAutoEnabled);
   }
 }
 
