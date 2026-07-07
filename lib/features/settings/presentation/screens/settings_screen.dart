@@ -11,6 +11,7 @@ import 'package:pixel_pocket/core/widgets/pixel_confirm_dialog.dart';
 import 'package:pixel_pocket/core/widgets/pixel_error_view.dart';
 import 'package:pixel_pocket/features/auth/presentation/controllers/pin_controller.dart';
 import 'package:pixel_pocket/features/backup/presentation/controllers/import_controller.dart';
+import 'package:pixel_pocket/features/backup/presentation/screens/widgets/backup_section.dart';
 import 'package:pixel_pocket/features/categories/domain/models/category_model.dart';
 import 'package:pixel_pocket/features/categories/presentation/controllers/category_controller.dart';
 import 'package:pixel_pocket/features/categories/presentation/screens/widgets/category_form_sheet.dart';
@@ -72,6 +73,8 @@ class SettingsScreen extends ConsumerWidget {
                         const _CategorySection(),
                         const SizedBox(height: AppSpacing.section),
                         const _SectionLabel('BACKUP'),
+                        const BackupSection(),
+                        const SizedBox(height: AppSpacing.s12),
                         const _ImportFromServerTile(),
                         const SizedBox(height: AppSpacing.section),
                         const _SectionLabel('SECURITY'),
