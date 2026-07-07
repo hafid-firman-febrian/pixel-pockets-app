@@ -52,4 +52,19 @@ void main() {
     expect(pc.salaryAmount.value, 5000);
     expect(pc.name.value, 'Jul');
   });
+
+  test('padRow pads a short salary period row from trimmed sheet values', () {
+    final row = padRow(['3', 'Jul', '2026-07-01', '2026-07-31'], salaryPeriodsHeader.length);
+    final companion = salaryPeriodFromRow(row);
+    expect(companion.salaryAmount.value, isNull);
+    expect(companion.name.value, 'Jul');
+  });
+
+  test('padRow pads a short transaction row from trimmed sheet values', () {
+    final row = padRow(
+        ['99', '2026-07-05', 'expense', '12', '7', 'kopi'], transactionsHeader.length);
+    final companion = transactionFromRow(row);
+    expect(companion.createdAt.value, isNull);
+    expect(companion.updatedAt.value, isNull);
+  });
 }

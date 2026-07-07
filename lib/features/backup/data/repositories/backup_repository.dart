@@ -83,10 +83,19 @@ class BackupRepository {
       final cats = _dropHeader(await _sheets.readTab(id, 'Categories'));
       final periods = _dropHeader(await _sheets.readTab(id, 'SalaryPeriods'));
       final txs = _dropHeader(await _sheets.readTab(id, 'Transactions'));
+      if (cats.isEmpty && periods.isEmpty && txs.isEmpty) {
+        throw const Failure(message: 'Tidak ada backup ditemukan untuk direstore.');
+      }
       await _db.replaceAll(
-        categories: cats.map(categoryFromRow).toList(),
-        salaryPeriods: periods.map(salaryPeriodFromRow).toList(),
-        transactions: txs.map(transactionFromRow).toList(),
+        categories: cats
+            .map((r) => categoryFromRow(padRow(r, categoriesHeader.length)))
+            .toList(),
+        salaryPeriods: periods
+            .map((r) => salaryPeriodFromRow(padRow(r, salaryPeriodsHeader.length)))
+            .toList(),
+        transactions: txs
+            .map((r) => transactionFromRow(padRow(r, transactionsHeader.length)))
+            .toList(),
       );
     } catch (e) {
       throw _asFailure(e);

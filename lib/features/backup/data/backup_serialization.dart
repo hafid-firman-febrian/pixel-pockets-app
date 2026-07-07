@@ -24,6 +24,10 @@ double? _doubleN(Object? v) {
   return s.isEmpty ? null : double.parse(s);
 }
 
+List<Object?> padRow(List<Object?> row, int width) => row.length >= width
+    ? row
+    : [...row, ...List.filled(width - row.length, '')];
+
 List<Object?> categoryToRow(Category c) => [_s(c.id), _s(c.name), _s(c.color), _s(c.type)];
 
 CategoriesCompanion categoryFromRow(List<Object?> r) => CategoriesCompanion(
