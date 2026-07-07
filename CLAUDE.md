@@ -8,7 +8,8 @@
 | HTTP client | `dio` |
 | Navigation | `go_router` |
 | Chart | `fl_chart` |
-| JSON | Manual `toJson` / `fromJson` — **tanpa freezed, tanpa code gen** |
+| JSON | Manual `toJson` / `fromJson` — tanpa freezed. **Code-gen hanya untuk Drift (build_runner + drift_dev).** |
+| Local DB | `drift` (SQLite via `sqlite3_flutter_libs`) — source of truth offline |
 
 ---
 
