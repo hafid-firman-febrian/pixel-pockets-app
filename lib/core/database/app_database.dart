@@ -42,6 +42,35 @@ class AppDatabase extends _$AppDatabase {
       }
     });
   }
+
+  Future<void> replaceAll({
+    required List<CategoriesCompanion> categories,
+    required List<SalaryPeriodsCompanion> salaryPeriods,
+    required List<TransactionsCompanion> transactions,
+  }) async {
+    await transaction(() async {
+      await delete(this.transactions).go();
+      await delete(this.salaryPeriods).go();
+      await delete(this.categories).go();
+      await batch((b) {
+        b.insertAll(
+          this.categories,
+          categories,
+          mode: InsertMode.insertOrReplace,
+        );
+        b.insertAll(
+          this.salaryPeriods,
+          salaryPeriods,
+          mode: InsertMode.insertOrReplace,
+        );
+        b.insertAll(
+          this.transactions,
+          transactions,
+          mode: InsertMode.insertOrReplace,
+        );
+      });
+    });
+  }
 }
 
 LazyDatabase _openConnection() {
