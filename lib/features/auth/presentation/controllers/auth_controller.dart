@@ -29,19 +29,15 @@ class AuthController extends Notifier<AuthState> {
     try {
       await _service.initialize();
     } catch (_) {}
+    AuthUser? user;
     try {
       final token = await _session.currentAccessToken();
       if (token != null) {
         final name = await _session.currentUserName();
-        final user = _restoredUser(name);
-
-        state = await _hasPin() ? AuthLocked(user) : AuthSignedIn(user);
-      } else if (state is AuthUnknown) {
-        state = const AuthSignedOut();
+        user = _restoredUser(name);
       }
-    } catch (_) {
-      if (state is AuthUnknown) state = const AuthSignedOut();
-    }
+    } catch (_) {}
+    state = await _hasPin() ? AuthLocked(user) : AuthSignedIn(user);
   }
 
   Future<bool> _hasPin() async {
@@ -95,7 +91,7 @@ class AuthController extends Notifier<AuthState> {
       try {
         await ref.read(cacheStoreProvider).clearAll();
       } catch (_) {}
-      state = const AuthSignedOut();
+      state = const AuthSignedIn(null);
       ref.invalidate(transactionsControllerProvider);
     }
   }
