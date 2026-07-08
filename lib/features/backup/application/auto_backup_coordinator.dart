@@ -51,7 +51,7 @@ class AutoBackupCoordinator {
 
   Future<void> flush() async {
     _timer?.cancel();
-    await _attempt();
+    if (_meta.pendingBackup) await _attempt();
   }
 
   Future<void> onResume() async {

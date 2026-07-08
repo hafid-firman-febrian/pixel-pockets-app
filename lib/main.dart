@@ -57,10 +57,10 @@ class _PixelPocketAppState extends ConsumerState<PixelPocketApp>
     final coordinator = ref.read(autoBackupCoordinatorProvider);
     switch (state) {
       case AppLifecycleState.paused:
-      case AppLifecycleState.inactive:
         unawaited(coordinator.flush());
       case AppLifecycleState.resumed:
         unawaited(coordinator.onResume());
+      case AppLifecycleState.inactive:
       case AppLifecycleState.detached:
       case AppLifecycleState.hidden:
         break;
