@@ -26,7 +26,7 @@ class BackupController extends AutoDisposeAsyncNotifier<void> {
     state = const AsyncLoading();
     state = await AsyncValue.guard(action);
     ref.invalidate(backupStatusProvider);
-    ref.invalidate(autoBackupStatusProvider);
+    ref.read(autoBackupStatusProvider.notifier).sync();
     return !state.hasError;
   }
 

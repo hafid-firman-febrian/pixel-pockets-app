@@ -95,7 +95,7 @@ final Provider<AutoBackupCoordinator> autoBackupCoordinatorProvider =
     meta: ref.read(backupMetadataStoreProvider),
     debounce: const Duration(seconds: 10),
     onChanged: () {
-      ref.invalidate(autoBackupStatusProvider);
+      ref.read(autoBackupStatusProvider.notifier).sync();
       ref.invalidate(backupStatusProvider);
     },
   );
@@ -103,12 +103,24 @@ final Provider<AutoBackupCoordinator> autoBackupCoordinatorProvider =
   return coordinator;
 });
 
-final Provider<AutoBackupStatus> autoBackupStatusProvider =
-    Provider<AutoBackupStatus>((ref) {
-  final c = ref.watch(autoBackupCoordinatorProvider);
-  return AutoBackupStatus(
-    enabled: c.enabled,
-    pending: c.pending,
-    running: c.running,
-  );
-});
+class AutoBackupStatusNotifier extends Notifier<AutoBackupStatus> {
+  @override
+  AutoBackupStatus build() => _read();
+
+  void sync() => state = _read();
+
+  AutoBackupStatus _read() {
+    final c = ref.read(autoBackupCoordinatorProvider);
+    return AutoBackupStatus(
+      enabled: c.enabled,
+      pending: c.pending,
+      running: c.running,
+    );
+  }
+}
+
+final NotifierProvider<AutoBackupStatusNotifier, AutoBackupStatus>
+autoBackupStatusProvider =
+    NotifierProvider<AutoBackupStatusNotifier, AutoBackupStatus>(
+      AutoBackupStatusNotifier.new,
+    );

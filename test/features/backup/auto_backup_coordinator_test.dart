@@ -1,5 +1,7 @@
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:pixel_pocket/core/cache/cache_store.dart';
 import 'package:pixel_pocket/features/backup/application/auto_backup_coordinator.dart';
 import 'package:pixel_pocket/features/backup/data/datasources/backup_metadata_store.dart';
 
@@ -83,5 +85,26 @@ void main() {
     await c.onResume();
     expect(calls, 1);
     c.dispose();
+  });
+
+  test('autoBackupStatusProvider notifies listeners when enabled toggles', () async {
+    SharedPreferences.setMockInitialValues({'backup_spreadsheet_id': 'sheet1'});
+    final prefs = await SharedPreferences.getInstance();
+    final container = ProviderContainer(
+      overrides: [sharedPreferencesProvider.overrideWithValue(prefs)],
+    );
+    addTearDown(container.dispose);
+
+    final seen = <bool>[];
+    container.listen(
+      autoBackupStatusProvider,
+      (_, next) => seen.add(next.enabled),
+      fireImmediately: true,
+    );
+
+    expect(container.read(autoBackupStatusProvider).enabled, true);
+    await container.read(autoBackupCoordinatorProvider).setEnabled(false);
+    expect(container.read(autoBackupStatusProvider).enabled, false);
+    expect(seen, [true, false]);
   });
 }
