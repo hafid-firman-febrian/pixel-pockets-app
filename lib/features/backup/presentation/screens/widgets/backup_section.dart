@@ -92,8 +92,6 @@ class BackupSection extends ConsumerWidget {
           _AutoBackupStatusRow(
             autoBackupStatus: autoBackupStatus,
             lastBackupAt: status.lastBackupAt,
-            isLoading: isLoading,
-            onBackupNow: () => _backup(context, ref),
           ),
           const SizedBox(height: AppSpacing.section),
           PixelButton(
@@ -183,14 +181,10 @@ class _AutoBackupStatusRow extends StatelessWidget {
   const _AutoBackupStatusRow({
     required this.autoBackupStatus,
     required this.lastBackupAt,
-    required this.isLoading,
-    required this.onBackupNow,
   });
 
   final AutoBackupStatus autoBackupStatus;
   final DateTime? lastBackupAt;
-  final bool isLoading;
-  final VoidCallback onBackupNow;
 
   @override
   Widget build(BuildContext context) {
@@ -202,24 +196,9 @@ class _AutoBackupStatusRow extends StatelessWidget {
     }
 
     if (autoBackupStatus.pending) {
-      return Row(
-        children: [
-          Expanded(
-            child: Text(
-              '⚠ Perubahan belum ter-backup',
-              style: AppTextStyles.bodyNormal.copyWith(
-                color: AppColors.secondary,
-              ),
-            ),
-          ),
-          const SizedBox(width: AppSpacing.s8),
-          PixelButton(
-            label: 'Backup sekarang',
-            size: PixelButtonSize.sm,
-            isLoading: isLoading,
-            onPressed: isLoading ? null : onBackupNow,
-          ),
-        ],
+      return Text(
+        '⚠ Perubahan belum ter-backup',
+        style: AppTextStyles.bodyNormal.copyWith(color: AppColors.secondary),
       );
     }
 

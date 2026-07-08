@@ -71,6 +71,7 @@ class BackupRepository {
         ['transactions', '${txs.length}'],
       ]);
       await _meta.setLastBackupAt(now);
+      await _meta.setPendingBackup(false);
       return now;
     } catch (e) {
       throw _asFailure(e);

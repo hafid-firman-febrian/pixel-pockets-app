@@ -1,4 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:pixel_pocket/features/backup/application/auto_backup_coordinator.dart';
 import 'package:pixel_pocket/features/backup/application/services/backup_service.dart';
 import 'package:pixel_pocket/features/backup/presentation/states/backup_state.dart';
 import 'package:pixel_pocket/features/categories/presentation/states/category_state.dart';
@@ -25,6 +26,7 @@ class BackupController extends AutoDisposeAsyncNotifier<void> {
     state = const AsyncLoading();
     state = await AsyncValue.guard(action);
     ref.invalidate(backupStatusProvider);
+    ref.invalidate(autoBackupStatusProvider);
     return !state.hasError;
   }
 
