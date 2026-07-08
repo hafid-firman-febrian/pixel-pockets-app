@@ -70,6 +70,7 @@ class TransactionDao {
   }
 
   Future<TransactionModel> create(TransactionModel m) async {
+    final now = DateTime.now().toIso8601String();
     final id = await _db.into(_db.transactions).insert(
           TransactionsCompanion.insert(
             transactionDate: m.transactionDate,
@@ -77,6 +78,8 @@ class TransactionDao {
             amount: m.amount,
             categoryId: Value(m.categoryId),
             description: Value(m.description),
+            createdAt: Value(now),
+            updatedAt: Value(now),
           ),
         );
     return _byId(id);
@@ -90,6 +93,7 @@ class TransactionDao {
         amount: Value(m.amount),
         categoryId: Value(m.categoryId),
         description: Value(m.description),
+        updatedAt: Value(DateTime.now().toIso8601String()),
       ),
     );
     return _byId(m.id);
