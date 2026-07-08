@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_native_splash/flutter_native_splash.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -5,6 +7,7 @@ import 'package:pixel_pocket/core/database/app_database.dart';
 import 'package:pixel_pocket/core/theme/app_color.dart';
 import 'package:pixel_pocket/features/auth/presentation/controllers/auth_controller.dart';
 import 'package:pixel_pocket/features/auth/presentation/states/auth_state.dart';
+import 'package:pixel_pocket/features/backup/application/auto_backup_coordinator.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:skeletonizer/skeletonizer.dart';
 
@@ -28,11 +31,44 @@ void main() async {
   );
 }
 
-class PixelPocketApp extends ConsumerWidget {
+class PixelPocketApp extends ConsumerStatefulWidget {
   const PixelPocketApp({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<PixelPocketApp> createState() => _PixelPocketAppState();
+}
+
+class _PixelPocketAppState extends ConsumerState<PixelPocketApp>
+    with WidgetsBindingObserver {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    final coordinator = ref.read(autoBackupCoordinatorProvider);
+    switch (state) {
+      case AppLifecycleState.paused:
+      case AppLifecycleState.inactive:
+        unawaited(coordinator.flush());
+      case AppLifecycleState.resumed:
+        unawaited(coordinator.onResume());
+      case AppLifecycleState.detached:
+      case AppLifecycleState.hidden:
+        break;
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
     // Remove the native splash once we know where to route (no longer unknown).
     ref.listen(authControllerProvider, (previous, next) {
       if (next is! AuthUnknown) {

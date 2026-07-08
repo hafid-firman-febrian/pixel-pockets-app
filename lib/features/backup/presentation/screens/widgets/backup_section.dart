@@ -8,6 +8,7 @@ import 'package:pixel_pocket/core/theme/app_text_style.dart';
 import 'package:pixel_pocket/core/widgets/pixel_button.dart';
 import 'package:pixel_pocket/core/widgets/pixel_card.dart';
 import 'package:pixel_pocket/core/widgets/pixel_confirm_dialog.dart';
+import 'package:pixel_pocket/features/backup/application/auto_backup_coordinator.dart';
 import 'package:pixel_pocket/features/backup/presentation/controllers/backup_controller.dart';
 import 'package:pixel_pocket/features/backup/presentation/states/backup_state.dart';
 import 'package:pixelarticons/pixel.dart';
@@ -18,6 +19,7 @@ class BackupSection extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final status = ref.watch(backupStatusProvider);
+    final autoBackupStatus = ref.watch(autoBackupStatusProvider);
     final isLoading = ref.watch(backupControllerProvider).isLoading;
 
     if (!status.connected) {
@@ -68,12 +70,30 @@ class BackupSection extends ConsumerWidget {
               ),
             ],
           ),
+          const SizedBox(height: AppSpacing.s12),
+          Row(
+            children: [
+              Expanded(
+                child: Text('Auto-backup', style: AppTextStyles.bodyNormal),
+              ),
+              Switch(
+                value: autoBackupStatus.enabled,
+                onChanged: (value) => ref
+                    .read(autoBackupCoordinatorProvider)
+                    .setEnabled(value),
+                activeThumbColor: AppColors.primary,
+                activeTrackColor: AppColors.primary.withValues(alpha: 0.35),
+                inactiveThumbColor: AppColors.textMuted,
+                inactiveTrackColor: AppColors.surfaceVariant,
+              ),
+            ],
+          ),
           const SizedBox(height: AppSpacing.s8),
-          Text(
-            'Backup terakhir: ${_lastBackupLabel(status.lastBackupAt)}',
-            style: AppTextStyles.bodyNormal.copyWith(
-              color: AppColors.textMuted,
-            ),
+          _AutoBackupStatusRow(
+            autoBackupStatus: autoBackupStatus,
+            lastBackupAt: status.lastBackupAt,
+            isLoading: isLoading,
+            onBackupNow: () => _backup(context, ref),
           ),
           const SizedBox(height: AppSpacing.section),
           PixelButton(
@@ -102,11 +122,6 @@ class BackupSection extends ConsumerWidget {
         ],
       ),
     );
-  }
-
-  String _lastBackupLabel(DateTime? lastBackupAt) {
-    if (lastBackupAt == null) return 'Belum pernah';
-    return DateFormat('d MMM yyyy, HH:mm').format(lastBackupAt);
   }
 
   Future<void> _connect(BuildContext context, WidgetRef ref) async {
@@ -161,5 +176,61 @@ class BackupSection extends ConsumerWidget {
         backgroundColor: AppColors.expense,
       ),
     );
+  }
+}
+
+class _AutoBackupStatusRow extends StatelessWidget {
+  const _AutoBackupStatusRow({
+    required this.autoBackupStatus,
+    required this.lastBackupAt,
+    required this.isLoading,
+    required this.onBackupNow,
+  });
+
+  final AutoBackupStatus autoBackupStatus;
+  final DateTime? lastBackupAt;
+  final bool isLoading;
+  final VoidCallback onBackupNow;
+
+  @override
+  Widget build(BuildContext context) {
+    if (autoBackupStatus.running) {
+      return Text(
+        'Sedang backup…',
+        style: AppTextStyles.bodyNormal.copyWith(color: AppColors.textMuted),
+      );
+    }
+
+    if (autoBackupStatus.pending) {
+      return Row(
+        children: [
+          Expanded(
+            child: Text(
+              '⚠ Perubahan belum ter-backup',
+              style: AppTextStyles.bodyNormal.copyWith(
+                color: AppColors.secondary,
+              ),
+            ),
+          ),
+          const SizedBox(width: AppSpacing.s8),
+          PixelButton(
+            label: 'Backup sekarang',
+            size: PixelButtonSize.sm,
+            isLoading: isLoading,
+            onPressed: isLoading ? null : onBackupNow,
+          ),
+        ],
+      );
+    }
+
+    return Text(
+      'Tersinkron — backup terakhir: ${_lastBackupLabel(lastBackupAt)}',
+      style: AppTextStyles.bodyNormal.copyWith(color: AppColors.textMuted),
+    );
+  }
+
+  String _lastBackupLabel(DateTime? value) {
+    if (value == null) return 'Belum pernah';
+    return DateFormat('d MMM yyyy, HH:mm').format(value);
   }
 }
