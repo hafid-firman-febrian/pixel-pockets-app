@@ -16,9 +16,9 @@ class SplashScreen extends StatelessWidget {
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Image.asset(
-              'assets/icons/app_icon.png',
-              width: 120,
-              height: 120,
+              'assets/icons/pixel_pocket_icon_splash.png',
+              width: 100,
+              height: 100,
               filterQuality: FilterQuality.none, // keep pixel-art crisp
             ),
             const SizedBox(height: 32),
