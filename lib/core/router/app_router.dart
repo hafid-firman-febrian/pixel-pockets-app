@@ -55,10 +55,6 @@ final routerProvider = Provider<GoRouter>((ref) {
         return location == AppRoutes.splash ? null : AppRoutes.splash;
       }
 
-      if (auth is AuthSignedOut) {
-        return location == AppRoutes.login ? null : AppRoutes.login;
-      }
-
       if (auth is AuthLocked) {
         return location == AppRoutes.unlock ? null : AppRoutes.unlock;
       }
@@ -68,8 +64,7 @@ final routerProvider = Provider<GoRouter>((ref) {
         return location == AppRoutes.setPin ? null : AppRoutes.setPin;
       }
 
-      if (location == AppRoutes.login ||
-          location == AppRoutes.splash ||
+      if (location == AppRoutes.splash ||
           location == AppRoutes.setPin ||
           location == AppRoutes.unlock) {
         return AppRoutes.dashboard;

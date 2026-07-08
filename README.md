@@ -1,20 +1,21 @@
 # Pixel Pocket
 
-> A personal finance app for tracking income & expenses, with a retro/pixel-style UI.
+> A local-first personal finance app for tracking income & expenses, with a retro/pixel-style UI.
 
-Pixel Pocket is a Flutter app for recording daily financial transactions, viewing balance summaries, analyzing spending by category, and visualizing it through charts. It connects to a REST backend deployed on Vercel.
+Pixel Pocket is a Flutter app for recording daily transactions, viewing balance summaries, analyzing spending by category, and visualizing it through charts. It is **local-first**: all data lives on-device in an embedded SQLite database (Drift) and the app works **fully offline**. Google Sheets is used only as an **optional backup/restore** to move data between devices — there is no backend server to run.
 
 ---
 
 ## ✨ Features
 
 - **Dashboard** — income/expense/balance summary, recent transactions, and spending breakdown by category.
-- **Transactions** — list, create, update, and delete transactions with date & category filters plus search.
-- **Categories** — manage income/expense categories (seed 18 default categories available).
+- **Transactions** — create, edit, delete, filter (date/type/category/salary period), and search.
+- **Categories** — manage income/expense categories (18 defaults seeded on first launch).
 - **Salary Periods** — group transactions by pay period.
-- **Chart** — daily income vs expense time-series (`fl_chart`).
-- **Auth & Security** — Google Sign-In login + local app lock with a PIN (SHA-256).
-- **Backup** — export data to Google Sheets.
+- **Chart** — daily/monthly income vs expense time-series (`fl_chart`).
+- **Offline-first** — every screen is computed locally from Drift; no internet required.
+- **Backup & Restore** — optional sync to **Google Sheets** (manual *Backup Now* / *Restore*), plus **auto-backup** after any change (debounced, non-blocking).
+- **Security** — local app lock with a PIN (SHA-256). Google sign-in is only needed for backup.
 
 ---
 
@@ -23,29 +24,29 @@ Pixel Pocket is a Flutter app for recording daily financial transactions, viewin
 | Need | Package |
 |---|---|
 | State management | `flutter_riverpod` |
-| HTTP client | `dio` |
+| Local database | `drift` + `sqlite3_flutter_libs` + `path_provider` |
 | Navigation | `go_router` |
 | Chart | `fl_chart` |
-| Auth | `google_sign_in`, `crypto` (PIN hashing) |
-| Secure storage | `flutter_secure_storage` |
+| Backup (cloud) | `googleapis` (Sheets v4 + Drive v3), `google_sign_in` (scope `drive.file`) |
+| Local metadata | `shared_preferences` |
+| Security | `crypto` (PIN hashing), `flutter_secure_storage` |
 | Formatting | `intl` |
 | UI / Font / Icon | `google_fonts`, `pixelarticons`, `skeletonizer` |
-| JSON | Manual `toJson` / `fromJson` — **no freezed, no code gen** |
+| Models | Manual `fromJson`/`toJson` — **no freezed**. Code generation is used **only** for Drift (`drift_dev` + `build_runner`). |
 
 ---
 
 ## 🏛️ Architecture
 
-Logic and UI are separated. Each feature follows Clean Architecture with 4 layers:
+Logic and UI are separated. Each feature follows a 4-layer structure; the data layer is backed by **Drift** (local SQLite), so datasources are DAOs rather than HTTP wrappers.
 
 ```
 features/<feature>/
 ├── data/
-│   ├── datasources/   ← Dio/SDK wrapper, returns DTOs
-│   ├── dtos/          ← fromJson / toJson + mapping to domain
-│   └── repositories/  ← map DTO↔domain, DioException → Failure
+│   ├── datasources/   ← Drift DAO (queries the local database)
+│   └── repositories/  ← map Drift rows ↔ domain, DB errors → Failure
 ├── domain/
-│   └── models/        ← pure entities (no JSON, Dio, Flutter)
+│   └── models/        ← pure entities (no DB, no Flutter, no Riverpod)
 ├── application/
 │   └── services/      ← business logic (no Riverpod, no widgets)
 └── presentation/
@@ -55,21 +56,22 @@ features/<feature>/
     └── widgets/
 ```
 
-The detailed rules for each layer live in [CLAUDE.md](CLAUDE.md).
+Summaries, per-category breakdowns, and chart series are all computed with Drift queries on-device. The detailed layer rules live in [CLAUDE.md](CLAUDE.md).
 
-### Main folder structure
+### Folder structure
 
 ```
 lib/
 ├── core/
-│   ├── api/        ← api_client, api_endpoints, auth_interceptor
+│   ├── database/   ← app_database (Drift), tables, default categories
 │   ├── error/      ← failure.dart
 │   ├── router/     ← app_router (go_router)
 │   ├── theme/      ← color, sizing, spacing, text style
 │   ├── utils/      ← currency_formatter
-│   └── widgets/    ← reusable components (PixelCard, PixelButton, etc.)
+│   └── widgets/    ← reusable components (PixelCard, PixelButton, …)
 ├── features/
-│   ├── auth/
+│   ├── auth/          ← PIN lock + Google sign-in (for backup)
+│   ├── backup/        ← Google Sheets backup/restore + auto-backup
 │   ├── dashboard/
 │   ├── transactions/
 │   ├── categories/
@@ -92,71 +94,66 @@ lib/
 
 ```bash
 flutter pub get
+dart run build_runner build --delete-conflicting-outputs   # generate Drift code
 flutter run
 ```
 
-### Backend configuration
-
-The base URL is selected automatically by [`ApiClient`](lib/core/api/api_client.dart). By default **all builds use production** (Vercel):
-
-| Environment | Base URL |
-|---|---|
-| Production (default) | `https://<your-project>.vercel.app` |
-| Android emulator (dev) | `http://10.0.2.2:3000` |
-| iOS simulator (dev) | `http://localhost:3000` |
-
-To use a local server during development, set `_useLocalDevServer = true` in [api_client.dart](lib/core/api/api_client.dart).
-
-### Google Sign-In configuration
-
-Fill in the OAuth Client ID in [auth_config.dart](lib/features/auth/auth_config.dart). `serverClientId` must match the client ID verified by the backend (it becomes the `aud` claim on the ID token). The iOS Client ID is best set via `GIDClientID` in `ios/Runner/Info.plist`.
+No backend is required — the app runs standalone and offline. On first launch it creates the local database and seeds 18 default categories.
 
 ### App icon
 
 ```bash
-flutter pub run flutter_launcher_icons
+dart run flutter_launcher_icons
 ```
 
 ---
 
-## 🔌 API
+## 💾 Data & Backup
 
-All responses are wrapped in a `"data"` key (paginated lists also include `"meta"`).
+- **Source of truth:** the on-device Drift database. The app is fully usable offline with no account.
+- **New user:** launch → set a PIN → start recording transactions (categories are pre-seeded).
+- **Backup:** *Settings → Connect Google Sheets*, then **Backup Now**. Enable the **Auto-backup** toggle to sync automatically after changes. Backup is best-effort and never blocks saving.
+- **Restore / new device:** install → *Connect Google Sheets* with the same Google account → **Restore**. Restore replaces local data with the spreadsheet contents (confirmation required).
 
-| Method | Endpoint | Description |
-|---|---|---|
-| POST | `/api/auth/google` | Log in with a Google ID token |
-| POST | `/api/auth/refresh` | Refresh the session token |
-| POST | `/api/auth/logout` | Log out |
-| GET | `/api/auth/me` | User profile |
-| GET | `/api/categories` | List categories |
-| POST | `/api/categories/seed` | Seed 18 default categories |
-| GET | `/api/salary-periods` | List salary periods |
-| GET | `/api/transactions` | List transactions (filter + pagination) |
-| POST/PUT/DELETE | `/api/transactions/:id` | Transaction CRUD |
-| GET | `/api/summary` | Total income/expense/balance |
-| GET | `/api/summary/by-category` | Breakdown by category |
-| GET | `/api/summary/chart` | Time-series for the chart |
-| POST | `/api/backup/spreadsheet` | Export to Google Sheets |
+> ⚠️ Backup is a copy, not real-time sync. Changes made offline are lost on device change only if they were never backed up — the Settings screen shows a "not backed up yet" indicator to warn you.
 
-Date filters accepted by the transactions & summary endpoints: `salary_period_id`, `filter` (`week`/`month`/`year`/`custom`), `start_date`, `end_date`, `transaction_type`, `category_id`. The full list lives in [api_endpoints.dart](lib/core/api/api_endpoints.dart).
+### Google Cloud setup (for backup)
+
+Backup talks to Google Sheets + Drive directly using the non-sensitive `drive.file` scope. In the Google Cloud project whose OAuth client is set in [auth_config.dart](lib/features/auth/auth_config.dart):
+
+1. Enable **Google Sheets API** and **Google Drive API**.
+2. Add the scope `.../auth/drive.file` to the OAuth consent screen and **publish the app to Production** (no Google verification needed for `drive.file`).
+3. Register the OAuth clients for your build:
+   - **Android** — package name + the **signing SHA-1** (use the **release** keystore SHA-1 for distributed builds).
+   - **iOS** — bundle ID + `GIDClientID` in `ios/Runner/Info.plist`.
 
 ---
 
-## 🔐 Auth Flow
+## 🔐 Auth & Security
 
-Routing is handled by [`go_router`](lib/core/router/app_router.dart) based on auth state:
+Routing is handled by [`go_router`](lib/core/router/app_router.dart):
 
-`Splash → Login (Google) → Set PIN (first time) → Unlock (PIN) → Dashboard`
+`Splash → Set PIN (first launch) / Unlock (PIN) → Dashboard`
 
-The session token is stored securely in `flutter_secure_storage`; the PIN is stored as a local SHA-256 hash and used to lock the app.
+The app does **not** require Google login to use — the PIN is the app lock (stored as a local SHA-256 hash). Google sign-in is requested only when you connect Google Sheets for backup.
+
+---
+
+## 📦 Build & Distribute
+
+```bash
+flutter build apk        # Android APK
+flutter build appbundle  # Android App Bundle (Play Store)
+flutter build ipa        # iOS (requires an Apple Developer account)
+```
+
+For backup to work on a distributed build, register that build's **release SHA-1** in the Android OAuth client. End users then only need to install the app, set a PIN, and (optionally) connect their own Google account.
 
 ---
 
 ## 🧪 Testing
 
 ```bash
-flutter test                  # unit & widget tests
-flutter test integration_test # integration tests
-flutter analyze               # lint
+flutter test       # unit & widget tests (Drift runs on an in-memory database)
+flutter analyze    # lint
 ```

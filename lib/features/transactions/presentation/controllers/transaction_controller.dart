@@ -1,5 +1,8 @@
+import 'dart:async';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:pixel_pocket/core/error/failure.dart';
+import 'package:pixel_pocket/features/backup/application/auto_backup_coordinator.dart';
 import 'package:pixel_pocket/features/transactions/application/services/transaction_service.dart';
 import 'package:pixel_pocket/features/transactions/domain/models/transaction_model.dart';
 import 'package:pixel_pocket/features/transactions/presentation/states/transaction_state.dart';
@@ -128,6 +131,8 @@ class TransactionsController
       return false;
     }
 
+    unawaited(ref.read(autoBackupCoordinatorProvider).markDirty());
+
     final current = state.valueOrNull ?? const [];
     state = AsyncData(current.where((t) => t.id != id).toList(growable: false));
     return true;
@@ -143,6 +148,9 @@ class TransactionsController
       state = AsyncError<List<TransactionModel>>(e, st).copyWithPrevious(state);
       return false;
     }
+
+    unawaited(ref.read(autoBackupCoordinatorProvider).markDirty());
+
     final range = ref.read(rangeFilterProvider);
     final query = ref.read(transactionSearchProvider).trim();
     _page = 1;

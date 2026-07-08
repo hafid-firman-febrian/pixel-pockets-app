@@ -115,7 +115,7 @@ void main() {
 
     final state = container.read(authControllerProvider);
     expect(state, isA<AuthSignedIn>());
-    expect((state as AuthSignedIn).user.displayName, 'Ammar');
+    expect((state as AuthSignedIn).user?.displayName, 'Ammar');
   });
 
   test('bootstrap locks behind PIN when a token and a PIN both exist',
@@ -129,7 +129,20 @@ void main() {
 
     final state = container.read(authControllerProvider);
     expect(state, isA<AuthLocked>());
-    expect((state as AuthLocked).user.displayName, 'Ammar');
+    expect((state as AuthLocked).user?.displayName, 'Ammar');
+  });
+
+  test('bootstrap locks behind PIN even with no Google session', () async {
+    final service = _FakeAuthService();
+    final session = _FakeSession();
+    final container = _makeContainer(service, session, hasPin: true);
+
+    container.read(authControllerProvider);
+    await _settle();
+
+    final state = container.read(authControllerProvider);
+    expect(state, isA<AuthLocked>());
+    expect((state as AuthLocked).user, isNull);
   });
 
   test('unlock promotes a locked session to signed-in', () async {
@@ -145,10 +158,11 @@ void main() {
 
     final state = container.read(authControllerProvider);
     expect(state, isA<AuthSignedIn>());
-    expect((state as AuthSignedIn).user.displayName, 'Ammar');
+    expect((state as AuthSignedIn).user?.displayName, 'Ammar');
   });
 
-  test('bootstrap with no token settles to AuthSignedOut', () async {
+  test('bootstrap with no token and no pin settles to AuthSignedIn(null)',
+      () async {
     final service = _FakeAuthService();
     final session = _FakeSession(); // no access token
     final container = _makeContainer(service, session);
@@ -156,7 +170,9 @@ void main() {
     container.read(authControllerProvider);
     await _settle();
 
-    expect(container.read(authControllerProvider), isA<AuthSignedOut>());
+    final state = container.read(authControllerProvider);
+    expect(state, isA<AuthSignedIn>());
+    expect((state as AuthSignedIn).user, isNull);
   });
 
   test('login exchanges the Google idToken and signs in on success', () async {
@@ -199,10 +215,10 @@ void main() {
 
     final state = container.read(authControllerProvider);
     expect(state, isA<AuthSignedIn>());
-    expect((state as AuthSignedIn).user.idToken, isNull);
+    expect((state as AuthSignedIn).user?.idToken, isNull);
   });
 
-  test('login rethrows when exchange fails (403) and stays signed out',
+  test('login rethrows when exchange fails (403) and state is unchanged',
       () async {
     final service = _FakeAuthService(
       signInResult: const AuthUser(
@@ -224,6 +240,8 @@ void main() {
       () => container.read(authControllerProvider.notifier).login(),
       throwsA(isA<Failure>().having((f) => f.statusCode, 'statusCode', 403)),
     );
-    expect(container.read(authControllerProvider), isA<AuthSignedOut>());
+    final state = container.read(authControllerProvider);
+    expect(state, isA<AuthSignedIn>());
+    expect((state as AuthSignedIn).user, isNull);
   });
 }

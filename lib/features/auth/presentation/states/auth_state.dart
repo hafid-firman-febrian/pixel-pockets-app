@@ -8,16 +8,12 @@ class AuthUnknown extends AuthState {
   const AuthUnknown();
 }
 
-class AuthSignedOut extends AuthState {
-  const AuthSignedOut();
-}
-
 class AuthLocked extends AuthState {
   const AuthLocked(this.user);
-  final AuthUser user;
+  final AuthUser? user;
 }
 
 class AuthSignedIn extends AuthState {
   const AuthSignedIn(this.user);
-  final AuthUser user;
+  final AuthUser? user;
 }

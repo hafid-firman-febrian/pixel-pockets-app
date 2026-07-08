@@ -65,6 +65,13 @@ dependencies:
   # Local cache for offline read (JSON key-value)
   shared_preferences: ^2.3.2
 
+  drift: ^2.20.0
+  sqlite3_flutter_libs: ^0.5.24
+  path_provider: ^2.1.4
+  path: ^1.9.0
+  googleapis: ^16.0.0
+  http: ^1.6.0
+
 dev_dependencies:
   flutter_test:
     sdk: flutter
@@ -75,6 +82,9 @@ dev_dependencies:
   # package. See that file for information about deactivating specific lint
   # rules and activating additional ones.
   flutter_lints: ^6.0.0
+
+  drift_dev: ^2.20.0
+  build_runner: ^2.4.13
 
 # Native splash config — keep in sync with AppColors.background (#1A1A1A)
 flutter_native_splash:

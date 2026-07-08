@@ -9,7 +9,6 @@ class CategoryService {
   final CategoryRepository _repo;
 
   Future<List<CategoryModel>> list() => _repo.getAll();
-  Future<List<CategoryModel>> seed() => _repo.seed();
 
   Future<CategoryModel> create({
     required String name,

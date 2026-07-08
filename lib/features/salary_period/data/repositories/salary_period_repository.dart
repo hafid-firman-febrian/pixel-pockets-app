@@ -1,49 +1,20 @@
-import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:pixel_pocket/core/error/failure.dart';
-import 'package:pixel_pocket/features/salary_period/data/datasources/salary_period_local_data_source.dart';
-import 'package:pixel_pocket/features/salary_period/data/datasources/salary_period_remote_data_source.dart';
+import 'package:pixel_pocket/features/salary_period/data/datasources/salary_period_dao.dart';
 import 'package:pixel_pocket/features/salary_period/domain/models/salary_period_model.dart';
 
 class SalaryPeriodRepository {
-  SalaryPeriodRepository(this._remote, this._local);
+  SalaryPeriodRepository(this._dao);
 
-  final SalaryPeriodRemoteDataSource _remote;
-  final SalaryPeriodLocalDataSource _local;
+  final SalaryPeriodDao _dao;
 
-  Future<List<SalaryPeriodModel>> getAll() async {
-    try {
-      final dtos = await _remote.getAll();
-      await _local.save(dtos);
-      return dtos.map((d) => d.toDomain()).toList();
-    } on DioException catch (e) {
-      if (isConnectivityError(e)) {
-        final cached = _local.read();
-        if (cached != null) return cached.map((d) => d.toDomain()).toList();
-      }
-      throw Failure.fromDio(e);
-    }
-  }
+  Future<List<SalaryPeriodModel>> getAll() => _dao.getAll();
 
   Future<SalaryPeriodModel> create({
     required String name,
     required String startDate,
     required String endDate,
     double? salaryAmount,
-  }) async {
-    try {
-      final dto = await _remote.create(
-        name: name,
-        startDate: startDate,
-        endDate: endDate,
-        salaryAmount: salaryAmount,
-      );
-      await _local.invalidate();
-      return dto.toDomain();
-    } on DioException catch (e) {
-      throw Failure.fromDio(e);
-    }
-  }
+  }) => _dao.create(name: name, startDate: startDate, endDate: endDate, salaryAmount: salaryAmount);
 
   Future<SalaryPeriodModel> update({
     required int id,
@@ -51,35 +22,11 @@ class SalaryPeriodRepository {
     required String startDate,
     required String endDate,
     double? salaryAmount,
-  }) async {
-    try {
-      final dto = await _remote.update(
-        id: id,
-        name: name,
-        startDate: startDate,
-        endDate: endDate,
-        salaryAmount: salaryAmount,
-      );
-      await _local.invalidate();
-      return dto.toDomain();
-    } on DioException catch (e) {
-      throw Failure.fromDio(e);
-    }
-  }
+  }) => _dao.update(id: id, name: name, startDate: startDate, endDate: endDate, salaryAmount: salaryAmount);
 
-  Future<void> delete(int id) async {
-    try {
-      await _remote.delete(id);
-      await _local.invalidate();
-    } on DioException catch (e) {
-      throw Failure.fromDio(e);
-    }
-  }
+  Future<void> delete(int id) => _dao.delete(id);
 }
 
 final salaryPeriodRepositoryProvider = Provider<SalaryPeriodRepository>(
-  (ref) => SalaryPeriodRepository(
-    ref.watch(salaryPeriodRemoteDataSourceProvider),
-    ref.watch(salaryPeriodLocalDataSourceProvider),
-  ),
+  (ref) => SalaryPeriodRepository(ref.watch(salaryPeriodDaoProvider)),
 );

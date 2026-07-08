@@ -1,4 +1,7 @@
+import 'dart:async';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:pixel_pocket/features/backup/application/auto_backup_coordinator.dart';
 import 'package:pixel_pocket/features/categories/application/services/category_service.dart';
 import 'package:pixel_pocket/features/categories/presentation/states/category_state.dart';
 
@@ -19,6 +22,7 @@ class CategoryController {
         .read(categoryServiceProvider)
         .create(name: name, color: color, type: type);
     _ref.invalidate(categoriesProvider);
+    unawaited(_ref.read(autoBackupCoordinatorProvider).markDirty());
   }
 
   Future<void> update({
@@ -31,11 +35,13 @@ class CategoryController {
         .read(categoryServiceProvider)
         .update(id: id, name: name, color: color, type: type);
     _ref.invalidate(categoriesProvider);
+    unawaited(_ref.read(autoBackupCoordinatorProvider).markDirty());
   }
 
   Future<void> delete(int id) async {
     await _ref.read(categoryServiceProvider).delete(id);
     _ref.invalidate(categoriesProvider);
+    unawaited(_ref.read(autoBackupCoordinatorProvider).markDirty());
   }
 }
 

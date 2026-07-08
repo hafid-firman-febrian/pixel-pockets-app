@@ -1,4 +1,7 @@
+import 'dart:async';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:pixel_pocket/features/backup/application/auto_backup_coordinator.dart';
 import 'package:pixel_pocket/features/salary_period/application/services/salary_period_service.dart';
 import 'package:pixel_pocket/features/salary_period/presentation/states/salary_period_state.dart';
 
@@ -23,6 +26,7 @@ class SalaryPeriodController {
           salaryAmount: salaryAmount,
         );
     _ref.invalidate(salaryPeriodProvider);
+    unawaited(_ref.read(autoBackupCoordinatorProvider).markDirty());
   }
 
   Future<void> update({
@@ -40,11 +44,13 @@ class SalaryPeriodController {
           salaryAmount: salaryAmount,
         );
     _ref.invalidate(salaryPeriodProvider);
+    unawaited(_ref.read(autoBackupCoordinatorProvider).markDirty());
   }
 
   Future<void> delete(int id) async {
     await _ref.read(salaryPeriodServiceProvider).delete(id);
     _ref.invalidate(salaryPeriodProvider);
+    unawaited(_ref.read(autoBackupCoordinatorProvider).markDirty());
   }
 }
 
