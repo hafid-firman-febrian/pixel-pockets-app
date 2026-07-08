@@ -1,11 +1,7 @@
-import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:pixel_pocket/core/cache/cache_store.dart';
-import 'package:pixel_pocket/core/error/failure.dart';
 import 'package:pixel_pocket/features/auth/application/services/auth_service.dart';
 import 'package:pixel_pocket/features/auth/application/services/pin_service.dart';
-import 'package:pixel_pocket/features/auth/data/repositories/auth_session_repository.dart';
-import 'package:pixel_pocket/features/auth/domain/models/auth_user.dart';
 import 'package:pixel_pocket/features/auth/presentation/states/auth_state.dart';
 import 'package:pixel_pocket/features/transactions/presentation/controllers/transaction_controller.dart';
 
@@ -14,10 +10,7 @@ final authControllerProvider = NotifierProvider<AuthController, AuthState>(
 );
 
 class AuthController extends Notifier<AuthState> {
-  bool _signingIn = false;
-
   AuthService get _service => ref.read(authServiceProvider);
-  AuthSessionRepository get _session => ref.read(authSessionRepositoryProvider);
 
   @override
   AuthState build() {
@@ -29,15 +22,7 @@ class AuthController extends Notifier<AuthState> {
     try {
       await _service.initialize();
     } catch (_) {}
-    AuthUser? user;
-    try {
-      final token = await _session.currentAccessToken();
-      if (token != null) {
-        final name = await _session.currentUserName();
-        user = _restoredUser(name);
-      }
-    } catch (_) {}
-    state = await _hasPin() ? AuthLocked(user) : AuthSignedIn(user);
+    state = await _hasPin() ? const AuthLocked(null) : const AuthSignedIn(null);
   }
 
   Future<bool> _hasPin() async {
@@ -53,46 +38,14 @@ class AuthController extends Notifier<AuthState> {
     if (current is AuthLocked) state = AuthSignedIn(current.user);
   }
 
-  AuthUser _restoredUser(String? name) => AuthUser(
-    id: '',
-    email: '',
-    displayName: name,
-    photoUrl: null,
-    idToken: null,
-  );
-
-  Future<void> login() async {
-    if (_signingIn) {
-      debugPrint('[AUTH] login() ignored — sign-in already in progress');
-      return;
-    }
-    _signingIn = true;
-    try {
-      final user = await _service.signIn();
-      if (user == null) return;
-      final idToken = user.idToken;
-      if (idToken == null) {
-        throw const Failure(message: 'Google did not return an ID token.');
-      }
-      await _session.exchangeGoogle(idToken);
-      state = AuthSignedIn(_restoredUser(user.displayName));
-    } finally {
-      _signingIn = false;
-    }
-  }
-
   Future<void> logout() async {
     try {
-      await _session.logout();
-    } finally {
-      try {
-        await _service.signOut();
-      } catch (_) {}
-      try {
-        await ref.read(cacheStoreProvider).clearAll();
-      } catch (_) {}
-      state = const AuthSignedIn(null);
-      ref.invalidate(transactionsControllerProvider);
-    }
+      await _service.signOut();
+    } catch (_) {}
+    try {
+      await ref.read(cacheStoreProvider).clearAll();
+    } catch (_) {}
+    state = const AuthSignedIn(null);
+    ref.invalidate(transactionsControllerProvider);
   }
 }

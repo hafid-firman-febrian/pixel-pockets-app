@@ -1,4 +1,3 @@
-import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:pixel_pocket/core/database/app_database.dart';
 import 'package:pixel_pocket/core/error/failure.dart';
@@ -108,7 +107,6 @@ class BackupRepository {
 
   Failure _asFailure(Object e) {
     if (e is Failure) return e;
-    if (e is DioException) return Failure.fromDio(e);
     if (e is SheetsAuthException) {
       return Failure(message: e.message, type: FailureType.unauthorized);
     }
