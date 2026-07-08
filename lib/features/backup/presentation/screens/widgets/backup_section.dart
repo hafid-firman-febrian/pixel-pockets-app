@@ -21,6 +21,7 @@ class BackupSection extends ConsumerWidget {
     final status = ref.watch(backupStatusProvider);
     final autoBackupStatus = ref.watch(autoBackupStatusProvider);
     final isLoading = ref.watch(backupControllerProvider).isLoading;
+    final busy = isLoading || autoBackupStatus.running;
 
     if (!status.connected) {
       return PixelCard(
@@ -92,14 +93,15 @@ class BackupSection extends ConsumerWidget {
           _AutoBackupStatusRow(
             autoBackupStatus: autoBackupStatus,
             lastBackupAt: status.lastBackupAt,
+            isBackingUp: busy,
           ),
           const SizedBox(height: AppSpacing.section),
           PixelButton(
             label: 'Backup Now',
             icon: Pixel.cloudupload,
             isFullWidth: true,
-            isLoading: isLoading,
-            onPressed: isLoading ? null : () => _backup(context, ref),
+            isLoading: busy,
+            onPressed: busy ? null : () => _backup(context, ref),
           ),
           const SizedBox(height: AppSpacing.s8),
           PixelButton(
@@ -107,7 +109,7 @@ class BackupSection extends ConsumerWidget {
             icon: Pixel.clouddownload,
             variant: PixelButtonVariant.secondary,
             isFullWidth: true,
-            onPressed: isLoading ? null : () => _restore(context, ref),
+            onPressed: busy ? null : () => _restore(context, ref),
           ),
           const SizedBox(height: AppSpacing.s8),
           PixelButton(
@@ -115,7 +117,7 @@ class BackupSection extends ConsumerWidget {
             icon: Pixel.unlink,
             variant: PixelButtonVariant.danger,
             isFullWidth: true,
-            onPressed: isLoading ? null : () => _disconnect(context, ref),
+            onPressed: busy ? null : () => _disconnect(context, ref),
           ),
         ],
       ),
@@ -181,14 +183,16 @@ class _AutoBackupStatusRow extends StatelessWidget {
   const _AutoBackupStatusRow({
     required this.autoBackupStatus,
     required this.lastBackupAt,
+    required this.isBackingUp,
   });
 
   final AutoBackupStatus autoBackupStatus;
   final DateTime? lastBackupAt;
+  final bool isBackingUp;
 
   @override
   Widget build(BuildContext context) {
-    if (autoBackupStatus.running) {
+    if (isBackingUp) {
       return Text(
         'Sedang backup…',
         style: AppTextStyles.bodyNormal.copyWith(color: AppColors.textMuted),
