@@ -9,7 +9,6 @@ import 'package:pixel_pocket/core/theme/app_spacing.dart';
 import 'package:pixel_pocket/core/theme/app_text_style.dart';
 import 'package:pixel_pocket/core/widgets/pixel_button.dart';
 import 'package:pixel_pocket/core/widgets/pixel_card.dart';
-import 'package:pixel_pocket/core/widgets/pixel_confirm_dialog.dart';
 import 'package:pixel_pocket/core/widgets/pixel_error_view.dart';
 import 'package:pixel_pocket/features/auth/presentation/controllers/auth_controller.dart';
 import 'package:pixel_pocket/features/dashboard/domain/models/category_summary.dart';
@@ -58,7 +57,8 @@ class DashboardScreen extends ConsumerWidget {
           backgroundColor: AppColors.surface,
           child: allFailed
               ? _OfflineBody(
-                  onLogout: () => _confirmLogout(context, ref),
+                  onLock: () =>
+                      ref.read(authControllerProvider.notifier).lock(),
                   failure: asFailure(summaryAsync.error),
                   onRetry: () => _refresh(ref),
                 )
@@ -67,7 +67,8 @@ class DashboardScreen extends ConsumerWidget {
                   physics: const AlwaysScrollableScrollPhysics(),
                   children: [
                     _DashboardHeader(
-                      onLogout: () => _confirmLogout(context, ref),
+                      onLock: () =>
+                          ref.read(authControllerProvider.notifier).lock(),
                     ),
                     SizedBox(height: AppSpacing.section),
                     const PeriodFilterCard(),
@@ -122,19 +123,6 @@ class DashboardScreen extends ConsumerWidget {
     );
   }
 
-  Future<void> _confirmLogout(BuildContext context, WidgetRef ref) async {
-    final confirmed = await showPixelConfirm(
-      context,
-      title: 'Logout?',
-      message: 'Your session will end and you\'ll need to sign in again.',
-      confirmLabel: 'Logout',
-      confirmVariant: PixelButtonVariant.danger,
-      icon: Pixel.logout,
-    );
-    if (!confirmed) return;
-    await ref.read(authControllerProvider.notifier).logout();
-  }
-
   Future<void> _refresh(WidgetRef ref) async {
     ref.invalidate(salaryPeriodProvider);
     ref.invalidate(dashboardSummaryProvider);
@@ -144,12 +132,12 @@ class DashboardScreen extends ConsumerWidget {
   }
 }
 
-/// App title + logout button. Shared between the normal and offline layouts so
+/// App title + lock button. Shared between the normal and offline layouts so
 /// the header stays identical in both.
 class _DashboardHeader extends StatelessWidget {
-  const _DashboardHeader({required this.onLogout});
+  const _DashboardHeader({required this.onLock});
 
-  final VoidCallback onLogout;
+  final VoidCallback onLock;
 
   @override
   Widget build(BuildContext context) {
@@ -160,9 +148,9 @@ class _DashboardHeader extends StatelessWidget {
         children: [
           Text('~\$ Pixel-Pocket', style: AppTextStyles.displayMedium),
           PixelButton(
-            onPressed: onLogout,
-            variant: PixelButtonVariant.danger,
-            icon: Pixel.logout,
+            onPressed: onLock,
+            variant: PixelButtonVariant.secondary,
+            icon: Pixel.lock,
             size: PixelButtonSize.sm,
           ),
         ],
@@ -176,12 +164,12 @@ class _DashboardHeader extends StatelessWidget {
 /// refreshes all sections at once.
 class _OfflineBody extends StatelessWidget {
   const _OfflineBody({
-    required this.onLogout,
+    required this.onLock,
     required this.failure,
     required this.onRetry,
   });
 
-  final VoidCallback onLogout;
+  final VoidCallback onLock;
   final Failure failure;
   final VoidCallback onRetry;
 
@@ -190,7 +178,7 @@ class _OfflineBody extends StatelessWidget {
     return Column(
       children: [
         SizedBox(height: AppSpacing.section),
-        _DashboardHeader(onLogout: onLogout),
+        _DashboardHeader(onLock: onLock),
         SizedBox(height: AppSpacing.section),
         const PeriodFilterCard(),
         Expanded(

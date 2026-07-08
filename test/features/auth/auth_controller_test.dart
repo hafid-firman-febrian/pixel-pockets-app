@@ -96,4 +96,16 @@ void main() {
 
     expect(container.read(authControllerProvider), isA<AuthSignedIn>());
   });
+
+  test('lock re-locks a signed-in session', () async {
+    final container = _makeContainer(_FakeAuthService());
+
+    container.read(authControllerProvider);
+    await _settle();
+    expect(container.read(authControllerProvider), isA<AuthSignedIn>());
+
+    container.read(authControllerProvider.notifier).lock();
+
+    expect(container.read(authControllerProvider), isA<AuthLocked>());
+  });
 }

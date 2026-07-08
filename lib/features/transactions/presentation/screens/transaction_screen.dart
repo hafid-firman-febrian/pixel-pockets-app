@@ -50,21 +50,15 @@ class TransactionScreen extends ConsumerWidget {
 
             const TransactionRangeFilter(),
             Expanded(
-              child: transactionsAsync.isLoading
-                  ? const _ListSkeleton()
-                  : switch (transactionsAsync) {
-                      AsyncValue(:final error?) => PixelErrorView(
-                        failure: asFailure(error),
-                        onRetry: () =>
-                            ref.invalidate(transactionsControllerProvider),
-                      ),
-                      AsyncValue(:final value?) => _buildList(
-                        context,
-                        ref,
-                        value,
-                      ),
-                      _ => const _ListSkeleton(),
-                    },
+              child: switch (transactionsAsync) {
+                AsyncValue(:final value?) => _buildList(context, ref, value),
+                AsyncValue(:final error?) => PixelErrorView(
+                  failure: asFailure(error),
+                  onRetry: () =>
+                      ref.invalidate(transactionsControllerProvider),
+                ),
+                _ => const _ListSkeleton(),
+              },
             ),
           ],
         ),

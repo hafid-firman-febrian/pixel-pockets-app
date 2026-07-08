@@ -1,9 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:pixel_pocket/core/cache/cache_store.dart';
 import 'package:pixel_pocket/features/auth/application/services/auth_service.dart';
 import 'package:pixel_pocket/features/auth/application/services/pin_service.dart';
 import 'package:pixel_pocket/features/auth/presentation/states/auth_state.dart';
-import 'package:pixel_pocket/features/transactions/presentation/controllers/transaction_controller.dart';
 
 final authControllerProvider = NotifierProvider<AuthController, AuthState>(
   AuthController.new,
@@ -38,14 +36,8 @@ class AuthController extends Notifier<AuthState> {
     if (current is AuthLocked) state = AuthSignedIn(current.user);
   }
 
-  Future<void> logout() async {
-    try {
-      await _service.signOut();
-    } catch (_) {}
-    try {
-      await ref.read(cacheStoreProvider).clearAll();
-    } catch (_) {}
-    state = const AuthSignedIn(null);
-    ref.invalidate(transactionsControllerProvider);
+  void lock() {
+    final current = state;
+    if (current is AuthSignedIn) state = AuthLocked(current.user);
   }
 }
