@@ -86,10 +86,10 @@ dev_dependencies:
 # Native splash config — keep in sync with AppColors.background (#1A1A1A)
 flutter_native_splash:
   color: "#1A1A1A"
-  image: assets/icons/pixel_pocket_icon_splash.png
+  image: assets/icons/app_icon.png
   android_12:
     color: "#1A1A1A"
-    image: assets/icons/pixel_pocket_icon_splash.png
+    image: assets/icons/app_icon.png
 
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec
