@@ -1,15 +1,17 @@
 # CLAUDE.md — Pixel Pocket Flutter
 
+Pixel Pocket adalah aplikasi **local-first**: Drift (SQLite on-device) adalah source of truth, app jalan full offline. Tidak ada server/REST API. Google Sheets dipakai hanya sebagai backup/restore opsional (lihat `features/backup/`), bukan live DB.
+
 ## Stack
 
 | Kebutuhan | Package |
 |---|---|
 | State management | `flutter_riverpod` |
-| HTTP client | `dio` |
+| Local DB | `drift` (SQLite via `sqlite3_flutter_libs`) — source of truth, semua fitur baca/tulis lewat sini |
 | Navigation | `go_router` |
 | Chart | `fl_chart` |
-| JSON | Manual `toJson` / `fromJson` — tanpa freezed. **Code-gen hanya untuk Drift (build_runner + drift_dev).** |
-| Local DB | `drift` (SQLite via `sqlite3_flutter_libs`) — source of truth offline |
+| Backup (cloud, opsional) | `googleapis` (Sheets v4 + Drive v3) + `google_sign_in` (scope `drive.file`) — hanya dipakai di `features/backup/` |
+| Models | Entity domain murni, **tanpa JSON** (tidak ada `fromJson`/`toJson`). Code-gen hanya untuk Drift (`build_runner` + `drift_dev`). |
 
 ---
 
@@ -20,11 +22,10 @@ Logic dan UI **wajib dipisah**. Setiap feature dibagi menjadi 4 blok utama (`dat
 ```
 features/<feature>/
 ├── data/
-│   ├── datasources/   ← Dio/SDK wrapper, kembalikan DTO, lempar DioException
-│   ├── dtos/          ← fromJson / toJson + fromDomain / toDomain
-│   └── repositories/  ← map DTO↔domain, DioException → Failure
+│   ├── datasources/   ← Drift DAO — query AppDatabase, kembalikan domain model langsung
+│   └── repositories/  ← pass-through tipis ke DAO; domain, Failure
 ├── domain/
-│   └── models/        ← entity murni (tanpa JSON, Dio, Flutter)
+│   └── models/        ← entity murni (tanpa JSON, Drift, Flutter, Riverpod)
 ├── application/
 │   └── services/      ← business logic (tanpa Riverpod, tanpa widget)
 └── presentation/
@@ -34,18 +35,19 @@ features/<feature>/
     └── widgets/
 ```
 
+Tidak ada layer `dtos/`. Drift men-generate row class yang sudah *typed* langsung dari skema tabel yang kita kuasai sendiri (`core/database/tables.dart`) — bukan wire format eksternal yang butuh anti-corruption layer — jadi mapping row Drift → domain model dilakukan langsung inline di DAO.
+
 ### Aturan ketat
 
 | Lapisan | Boleh | Tidak boleh |
 |---|---|---|
-| `domain/models` | entity murni, getter | JSON, Dio, Flutter, Riverpod |
-| `data/dtos` | fromJson/toJson, map ke domain | Dio, widget |
-| `data/datasources` | Dio, DTO, endpoints | map domain, map Failure, widget |
-| `data/repositories` | datasource, DTO, domain, Failure | Dio langsung, widget |
-| `application/services` | repository, domain | Riverpod state, widget, Dio |
-| `presentation/states` | Riverpod, service via DI | Dio, parsing |
-| `presentation/controllers` | Riverpod (Ref), service | Dio, parsing |
-| `presentation/screens+widgets` | Widget, ref.watch | Dio, parsing, logic |
+| `domain/models` | entity murni, getter | JSON, Drift, Flutter, Riverpod |
+| `data/datasources` | `AppDatabase` (Drift), domain model | Riverpod state, widget |
+| `data/repositories` | datasource/DAO, domain, Failure | Drift langsung, widget |
+| `application/services` | repository, domain | Riverpod state, widget |
+| `presentation/states` | Riverpod, service via DI | Drift, parsing |
+| `presentation/controllers` | Riverpod (Ref), service | Drift, parsing |
+| `presentation/screens+widgets` | Widget, ref.watch | Drift, parsing, logic |
 
 ---
 
@@ -54,55 +56,37 @@ features/<feature>/
 ```
 lib/
 ├── core/
-│   ├── api/
-│   │   ├── api_client.dart         ← Dio instance + baseUrl + interceptor
-│   │   └── api_endpoints.dart      ← semua URL string constant
+│   ├── database/
+│   │   ├── app_database.dart       ← Drift database + DAO registrations
+│   │   ├── tables.dart             ← definisi tabel Drift
+│   │   └── default_categories.dart ← seed 18 kategori default
 │   ├── error/
 │   │   └── failure.dart
+│   ├── router/
+│   │   └── app_router.dart         ← go_router
 │   ├── theme/
-│   │   └── app_theme.dart          ← retro color scheme
+│   │   └── app_color.dart          ← retro color scheme (lihat bagian Theme)
+│   ├── cache/
+│   │   └── cache_store.dart        ← wrapper shared_preferences (metadata lokal, bukan cache API)
 │   └── utils/
 │       └── currency_formatter.dart
 ├── features/
+│   ├── auth/           ← PIN lock (local app lock) + Google sign-in (untuk backup)
+│   ├── backup/          ← Google Sheets backup/restore + auto-backup
 │   ├── dashboard/
 │   ├── transactions/
 │   ├── categories/
-│   ├── salary_periods/
-│   └── backup/
+│   ├── salary_period/
+│   ├── chart/
+│   └── settings/
 └── main.dart
 ```
 
 ---
 
-## API
-
-| Environment | Base URL |
-|---|---|
-| Android emulator | `http://10.0.2.2:3000` |
-| iOS simulator | `http://localhost:3000` |
-| Production | `https://<project>.vercel.app` |
-
-### Konvensi response
-
-Semua response selalu dibungkus key `"data"`:
-
-```dart
-// Single object
-final data = response.data['data'];
-final model = SomeModel.fromJson(data);
-
-// List
-final list = response.data['data'] as List;
-final models = list.map((e) => SomeModel.fromJson(e)).toList();
-
-// List dengan pagination
-final list = response.data['data'] as List;
-final meta = response.data['meta'];
-```
-
----
-
 ## Models
+
+Semua domain model adalah entity murni — tidak ada `fromJson`/`toJson`. DAO memetakan row Drift ke model ini secara langsung.
 
 ### TransactionModel
 ```dart
@@ -113,8 +97,8 @@ class TransactionModel {
   final double amount;
   final int? categoryId;
   final String? description;
-  final String? categoryName;
-  final String? categoryColor;   // hex '#RRGGBB'
+  final String? categoryName;    // hasil join ke categories
+  final String? categoryColor;   // hex '#RRGGBB', hasil join ke categories
   final String? createdAt;
   final String? updatedAt;
 
@@ -131,28 +115,33 @@ class TransactionModel {
     this.updatedAt,
   });
 
-  factory TransactionModel.fromJson(Map<String, dynamic> json) {
-    return TransactionModel(
-      id: json['id'],
-      transactionDate: json['transactionDate'],
-      transactionType: json['transactionType'],
-      amount: (json['amount'] as num).toDouble(),
-      categoryId: json['categoryId'],
-      description: json['description'],
-      categoryName: json['categoryName'],
-      categoryColor: json['categoryColor'],
-      createdAt: json['createdAt'],
-      updatedAt: json['updatedAt'],
-    );
-  }
+  bool get isIncome => transactionType == 'income';
+  bool get isExpense => transactionType == 'expense';
+}
+```
 
-  Map<String, dynamic> toJson() => {
-    'transaction_date': transactionDate,
-    'transaction_type': transactionType,
-    'amount': amount,
-    if (categoryId != null) 'category_id': categoryId,
-    if (description != null) 'description': description,
-  };
+### TransactionFilter
+```dart
+class TransactionFilter {
+  final int? salaryPeriodId;   // prioritas tertinggi — mengabaikan `filter`
+  final String? filter;        // 'week' | 'month' | 'year' | 'custom'
+  final String? startDate;     // 'YYYY-MM-DD', wajib jika filter == 'custom'
+  final String? endDate;       // 'YYYY-MM-DD', wajib jika filter == 'custom'
+  final String? transactionType; // 'income' | 'expense'
+  final int? categoryId;
+  final int page;
+  final int limit;
+
+  const TransactionFilter({
+    this.salaryPeriodId,
+    this.filter,
+    this.startDate,
+    this.endDate,
+    this.transactionType,
+    this.categoryId,
+    this.page = 1,
+    this.limit = 20,
+  });
 }
 ```
 
@@ -162,7 +151,7 @@ class CategoryModel {
   final int id;
   final String name;
   final String? color;
-  final String type;  // 'income' | 'expense' | 'both'
+  final String type;  // 'income' | 'expense'
 
   const CategoryModel({
     required this.id,
@@ -171,12 +160,8 @@ class CategoryModel {
     required this.type,
   });
 
-  factory CategoryModel.fromJson(Map<String, dynamic> json) => CategoryModel(
-    id: json['id'],
-    name: json['name'],
-    color: json['color'],
-    type: json['type'],
-  );
+  bool get isIncome => type == 'income';
+  bool get isExpense => type == 'expense';
 }
 ```
 
@@ -196,65 +181,64 @@ class SalaryPeriodModel {
     required this.endDate,
     this.salaryAmount,
   });
-
-  factory SalaryPeriodModel.fromJson(Map<String, dynamic> json) => SalaryPeriodModel(
-    id: json['id'],
-    name: json['name'],
-    startDate: json['startDate'],
-    endDate: json['endDate'],
-    salaryAmount: json['salaryAmount'] != null
-        ? (json['salaryAmount'] as num).toDouble()
-        : null,
-  );
 }
 ```
 
-### SummaryModel
+### TransactionSummary (dashboard)
 ```dart
-class SummaryModel {
+class TransactionSummary {
   final double totalIncome;
   final double totalExpense;
   final double balance;
   final int transactionCount;
 
-  const SummaryModel({
+  const TransactionSummary({
     required this.totalIncome,
     required this.totalExpense,
     required this.balance,
     required this.transactionCount,
   });
-
-  factory SummaryModel.fromJson(Map<String, dynamic> json) => SummaryModel(
-    totalIncome: (json['total_income'] as num).toDouble(),
-    totalExpense: (json['total_expense'] as num).toDouble(),
-    balance: (json['balance'] as num).toDouble(),
-    transactionCount: json['transaction_count'],
-  );
 }
 ```
 
-### ChartModel
+### CategorySummary (dashboard — breakdown per kategori)
 ```dart
-class ChartModel {
+class CategorySummary {
+  final int categoryId;
+  final String name;
+  final String? colorHex;
+  final String type;      // 'income' | 'expense'
+  final double total;
+  final double percentage; // dari total per-type
+  final int count;
+
+  const CategorySummary({
+    required this.categoryId,
+    required this.name,
+    required this.colorHex,
+    required this.type,
+    required this.total,
+    required this.percentage,
+    required this.count,
+  });
+}
+```
+
+### ChartData
+```dart
+class ChartData {
   final List<String> labels;
   final List<double> income;
   final List<double> expense;
 
-  const ChartModel({
+  const ChartData({
     required this.labels,
     required this.income,
     required this.expense,
   });
 
-  factory ChartModel.fromJson(Map<String, dynamic> json) => ChartModel(
-    labels: List<String>.from(json['labels']),
-    income: List<double>.from(
-      (json['income'] as List).map((e) => (e as num).toDouble()),
-    ),
-    expense: List<double>.from(
-      (json['expense'] as List).map((e) => (e as num).toDouble()),
-    ),
-  );
+  bool get isEmpty => labels.isEmpty;
+  double get maxValue => [...income, ...expense].fold(0.0, (a, b) => a > b ? a : b);
 }
 ```
 
@@ -262,26 +246,50 @@ class ChartModel {
 
 ## Pola Kode
 
-### Repository
+### DAO (data/datasources/) — query Drift langsung
+```dart
+// features/categories/data/datasources/category_dao.dart
+class CategoryDao {
+  CategoryDao(this._db);
+
+  final AppDatabase _db;
+
+  Future<List<CategoryModel>> getAll() async {
+    final rows = await _db.select(_db.categories).get();
+    return rows.map(_toModel).toList();
+  }
+
+  Future<CategoryModel> create({required String name, required String color, required String type}) async {
+    final id = await _db.into(_db.categories).insert(
+          CategoriesCompanion.insert(name: name, color: Value(color), type: type),
+        );
+    return CategoryModel(id: id, name: name, color: color, type: type);
+  }
+
+  CategoryModel _toModel(Category row) =>
+      CategoryModel(id: row.id, name: row.name, color: row.color, type: row.type);
+}
+
+final categoryDaoProvider = Provider<CategoryDao>(
+  (ref) => CategoryDao(ref.watch(appDatabaseProvider)),
+);
+```
+
+### Repository — pass-through tipis ke DAO, tanpa mapping DTO
 ```dart
 // features/transactions/data/repositories/transaction_repository.dart
 class TransactionRepository {
-  TransactionRepository(this._remote);
+  TransactionRepository(this._dao);
 
-  final TransactionRemoteDataSource _remote; // tidak pegang Dio langsung
+  final TransactionDao _dao;
 
-  Future<List<TransactionModel>> getAll(TransactionFilter filter) async {
-    try {
-      final dtos = await _remote.getAll(filter);
-      return dtos.map((d) => d.toDomain()).toList();
-    } on DioException catch (e) {
-      throw Failure.fromDio(e);
-    }
-  }
+  Future<List<TransactionModel>> getAll(TransactionFilter filter) => _dao.getAll(filter);
+
+  Future<TransactionModel> create(TransactionModel transaction) => _dao.create(transaction);
 }
 
 final transactionRepositoryProvider = Provider<TransactionRepository>(
-  (ref) => TransactionRepository(ref.watch(transactionRemoteDataSourceProvider)),
+  (ref) => TransactionRepository(ref.watch(transactionDaoProvider)),
 );
 ```
 
@@ -330,68 +338,48 @@ ref.read(transactionFilterProvider.notifier).state = TransactionFilter(
 
 ## Theme — Retro Color Scheme
 
+Semua warna ada di `AppColors` (`core/theme/app_color.dart`), bukan top-level constant.
+
 ```dart
 // Expense
-const kColorGroceries     = Color(0xFF7D9B76); // sage green
-const kColorBeverage      = Color(0xFF5F8A8B); // teal
-const kColorCoffee        = Color(0xFF8B6355); // warm brown
-const kColorCigarettes    = Color(0xFF8C7B6B); // taupe
-const kColorDailyNeeds    = Color(0xFFC4A882); // warm tan
-const kColorEcommerce     = Color(0xFF6B7C8D); // slate blue
-const kColorEntertainment = Color(0xFF9B6B8C); // dusty mauve
-const kColorHousing       = Color(0xFFB5847A); // dusty rose
-const kColorMeal          = Color(0xFFCC7358); // terracotta
-const kColorSelfcare      = Color(0xFFA0856C); // sand
-const kColorSubscription  = Color(0xFF7B6D8D); // muted purple
-const kColorTransport     = Color(0xFF4A7C8C); // dark teal
-const kColorOther         = Color(0xFF8C8C7B); // warm gray
+AppColors.groceries     // 0xFF7D9B76 — sage green
+AppColors.beverage      // 0xFF5F8A8B — teal
+AppColors.coffee        // 0xFF8B6355 — warm brown
+AppColors.cigarettes    // 0xFF8C7B6B — taupe
+AppColors.dailyNeeds    // 0xFFC4A882 — warm tan
+AppColors.ecommerce     // 0xFF6B7C8D — slate blue
+AppColors.entertainment // 0xFF9B6B8C — dusty mauve
+AppColors.housing       // 0xFFB5847A — dusty rose
+AppColors.meal          // 0xFFCC7358 — terracotta
+AppColors.selfcare      // 0xFFA0856C — sand
+AppColors.subscription  // 0xFF7B6D8D — muted purple
+AppColors.transport     // 0xFF4A7C8C — dark teal
+AppColors.other         // 0xFF8C8C7B — warm gray
 // Income
-const kColorSalary        = Color(0xFF6B8C5F); // muted green
-const kColorFreelance     = Color(0xFF5B7A8C); // dusty blue
-const kColorInvestment    = Color(0xFF8C7A3D); // golden brown
-const kColorBonus         = Color(0xFF8C5B3D); // burnt sienna
-const kColorOtherIncome   = Color(0xFF7A8C6B); // sage olive
+AppColors.salary        // 0xFF6B8C5F — muted green
+AppColors.freelance     // 0xFF5B7A8C — dusty blue
+AppColors.investment    // 0xFF8C7A3D — golden brown
+AppColors.bonus         // 0xFF8C5B3D — burnt sienna
+AppColors.otherIncome   // 0xFF7A8C6B — sage olive
 ```
 
-Helper parse hex string dari API ke Color:
+Parse hex string (kolom `color` dari tabel `categories`) ke `Color`:
 ```dart
-Color hexToColor(String hex) {
-  final sanitized = hex.replaceAll('#', '');
-  return Color(int.parse('FF$sanitized', radix: 16));
-}
+AppColors.fromHex(category.color); // null/invalid → fallback ke AppColors.other
 ```
 
 ---
 
-## Filter Tanggal
+## Filter Transaksi & Summary
 
-Semua endpoint transactions & summary menerima filter yang sama:
+`TransactionDao`, `SummaryDao`, dan `ChartDao` menerima filter yang sama lewat `TransactionFilter`:
 
-| Parameter | Nilai | Keterangan |
+| Field | Nilai | Keterangan |
 |---|---|---|
-| `salary_period_id` | `int` | Prioritas tertinggi — mengabaikan `filter` |
+| `salaryPeriodId` | `int?` | Prioritas tertinggi — mengabaikan `filter` |
 | `filter` | `week` \| `month` \| `year` \| `custom` | |
-| `start_date` | `YYYY-MM-DD` | Wajib jika `filter=custom` |
-| `end_date` | `YYYY-MM-DD` | Wajib jika `filter=custom` |
-| `transaction_type` | `income` \| `expense` | |
-| `category_id` | `int` | Filter transaksi per kategori |
+| `startDate` / `endDate` | `YYYY-MM-DD` | Wajib jika `filter == 'custom'` |
+| `transactionType` | `income` \| `expense` | |
+| `categoryId` | `int?` | Filter transaksi per kategori |
 
----
-
-## Endpoints Lengkap
-
-| Method | Endpoint | Keterangan |
-|---|---|---|
-| GET | `/api/categories` | List semua kategori |
-| POST | `/api/categories/seed` | Seed 18 kategori default |
-| GET | `/api/salary-periods` | List semua salary period |
-| POST | `/api/salary-periods/seed` | Generate salary period otomatis |
-| GET | `/api/transactions` | List transaksi (filter + pagination) |
-| GET | `/api/transactions/:id` | Detail transaksi |
-| POST | `/api/transactions` | Buat transaksi |
-| PUT | `/api/transactions/:id` | Update transaksi |
-| DELETE | `/api/transactions/:id` | Hapus transaksi |
-| GET | `/api/summary` | Total income/expense/balance |
-| GET | `/api/summary/by-category` | Breakdown per kategori |
-| GET | `/api/summary/chart` | Time-series harian untuk chart |
-| POST | `/api/backup/spreadsheet` | Export ke Google Sheets |
+Catatan: kalau `salaryPeriodId` tidak match periode manapun, `TransactionDao`/`SummaryDao` fallback ke *unfiltered*, sedangkan `ChartDao` fallback ke bulan berjalan — perilaku ini masih divergen antar DAO, belum disamakan.
