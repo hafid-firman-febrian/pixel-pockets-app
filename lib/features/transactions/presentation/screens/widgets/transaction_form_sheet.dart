@@ -15,6 +15,7 @@ import 'package:pixel_pocket/features/categories/domain/models/category_model.da
 import 'package:pixel_pocket/features/categories/presentation/states/category_state.dart';
 import 'package:pixel_pocket/features/transactions/domain/models/transaction_model.dart';
 import 'package:pixel_pocket/features/transactions/presentation/controllers/transaction_controller.dart';
+import 'package:pixel_pocket/features/transactions/presentation/states/transaction_state.dart';
 
 class TransactionFormSheet extends ConsumerStatefulWidget {
   const TransactionFormSheet({super.key, this.existing});
@@ -60,7 +61,7 @@ class _TransactionFormSheetState extends ConsumerState<TransactionFormSheet> {
     _type = existing?.transactionType ?? 'expense';
     _date = existing != null
         ? (DateTime.tryParse(existing.transactionDate) ?? _todayFloor())
-        : _todayFloor();
+        : ref.read(rangeFilterProvider).defaultEntryDate;
     _categoryId = existing?.categoryId;
     _amountController = TextEditingController(
       text: existing != null ? CurrencyFormatter.input(existing.amount) : '0',
@@ -86,8 +87,8 @@ class _TransactionFormSheetState extends ConsumerState<TransactionFormSheet> {
     final picked = await showDatePicker(
       context: context,
       initialDate: _date,
-      firstDate: DateTime(2020),
-      lastDate: DateTime(2100),
+      firstDate: RangeFilter.entryDateMin,
+      lastDate: RangeFilter.entryDateMax,
     );
     if (picked != null) setState(() => _date = picked);
   }

@@ -98,6 +98,48 @@ class RangeFilter {
     }
   }
 
+  static final DateTime entryDateMin = DateTime(2020);
+  static final DateTime entryDateMax = DateTime(2100);
+
+  DateTime get defaultEntryDate => entryDateFor(_todayFloor());
+
+  DateTime entryDateFor(DateTime today) {
+    final day = DateTime(today.year, today.month, today.day);
+    final range = _entryBounds;
+    if (range == null) return _clampToWindow(day);
+
+    final (start, end) = range;
+    if (day.isBefore(start)) return _clampToWindow(start);
+    if (day.isAfter(end)) return _clampToWindow(end);
+    return _clampToWindow(day);
+  }
+
+  (DateTime, DateTime)? get _entryBounds {
+    final period = salaryPeriod;
+    if (period != null) {
+      final start = DateTime.tryParse(period.startDate);
+      final end = DateTime.tryParse(period.endDate);
+      if (start == null || end == null) return null;
+      return (
+        DateTime(start.year, start.month, start.day),
+        DateTime(end.year, end.month, end.day),
+      );
+    }
+    if (unit == RangeUnit.all) return null;
+    return bounds;
+  }
+
+  static DateTime _clampToWindow(DateTime date) {
+    if (date.isBefore(entryDateMin)) return entryDateMin;
+    if (date.isAfter(entryDateMax)) return entryDateMax;
+    return date;
+  }
+
+  static DateTime _todayFloor() {
+    final now = DateTime.now();
+    return DateTime(now.year, now.month, now.day);
+  }
+
   String get label {
     if (salaryPeriod != null) return salaryPeriod!.name;
     final (start, end) = bounds;
