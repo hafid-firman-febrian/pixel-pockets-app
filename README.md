@@ -15,7 +15,7 @@ Pixel Pocket is a Flutter app for recording daily transactions, viewing balance 
 - **Chart** — daily/monthly income vs expense time-series (`fl_chart`).
 - **Offline-first** — every screen is computed locally from Drift; no internet required.
 - **Backup & Restore** — optional sync to **Google Sheets** (manual *Backup Now* / *Restore*), plus **auto-backup** after any change (debounced, non-blocking).
-- **Security** — local app lock with a PIN (SHA-256). Google sign-in is only needed for backup.
+- **Security** — local app lock with a PIN (per-PIN random salt + SHA-256, stored in `flutter_secure_storage`). Google sign-in is only needed for backup.
 
 ---
 
@@ -24,15 +24,16 @@ Pixel Pocket is a Flutter app for recording daily transactions, viewing balance 
 | Need | Package |
 |---|---|
 | State management | `flutter_riverpod` |
-| Local database | `drift` + `sqlite3_flutter_libs` + `path_provider` |
+| Local database | `drift` + `sqlite3_flutter_libs` + `path_provider` + `path` |
 | Navigation | `go_router` |
 | Chart | `fl_chart` |
-| Backup (cloud) | `googleapis` (Sheets v4 + Drive v3), `google_sign_in` (scope `drive.file`) |
+| Backup (cloud) | `googleapis` (Sheets v4 + Drive v3), `google_sign_in` (scope `drive.file`), `http` |
 | Local metadata | `shared_preferences` |
-| Security | `crypto` (PIN hashing), `flutter_secure_storage` |
+| Security | `crypto` (salted SHA-256 PIN hashing), `flutter_secure_storage` |
 | Formatting | `intl` |
 | UI / Font / Icon | `google_fonts`, `pixelarticons`, `skeletonizer` |
-| Models | Manual `fromJson`/`toJson` — **no freezed**. Code generation is used **only** for Drift (`drift_dev` + `build_runner`). |
+| Launch screen / icon | `flutter_native_splash`, `flutter_launcher_icons` |
+| Models | Pure domain entities — **no `fromJson`/`toJson`**, no freezed. Code generation is used **only** for Drift (`drift_dev` + `build_runner`). |
 
 ---
 
@@ -43,8 +44,8 @@ Logic and UI are separated. Each feature follows a 4-layer structure; the data l
 ```
 features/<feature>/
 ├── data/
-│   ├── datasources/   ← Drift DAO (queries the local database)
-│   └── repositories/  ← map Drift rows ↔ domain, DB errors → Failure
+│   ├── datasources/   ← Drift DAO: query the database, map rows → domain models
+│   └── repositories/  ← thin pass-through to the DAO
 ├── domain/
 │   └── models/        ← pure entities (no DB, no Flutter, no Riverpod)
 ├── application/
@@ -56,18 +57,21 @@ features/<feature>/
     └── widgets/
 ```
 
-Summaries, per-category breakdowns, and chart series are all computed with Drift queries on-device. The detailed layer rules live in [CLAUDE.md](CLAUDE.md).
+Summaries, per-category breakdowns, and chart series are all computed with Drift queries on-device.
+
+There is no `dtos/` layer. Drift generates typed row classes from a schema we own ([tables.dart](lib/core/database/tables.dart)) rather than an external wire format, so the row → domain mapping is done inline in the DAO and repositories stay pass-through. `Failure` mapping only happens where an external SDK is involved — [auth](lib/features/auth/data/repositories/auth_repository.dart) (`google_sign_in`) and [backup](lib/features/backup/data/repositories/backup_repository.dart) (Sheets/Drive). The detailed layer rules live in [CLAUDE.md](CLAUDE.md).
 
 ### Folder structure
 
 ```
 lib/
 ├── core/
+│   ├── cache/      ← shared_preferences wrapper (local metadata, not an API cache)
 │   ├── database/   ← app_database (Drift), tables, default categories
 │   ├── error/      ← failure.dart
 │   ├── router/     ← app_router (go_router)
-│   ├── theme/      ← color, sizing, spacing, text style
-│   ├── utils/      ← currency_formatter
+│   ├── theme/      ← theme, color, sizing, spacing, text style
+│   ├── utils/      ← currency & thousands-separator formatters
 │   └── widgets/    ← reusable components (PixelCard, PixelButton, …)
 ├── features/
 │   ├── auth/          ← PIN lock + Google sign-in (for backup)
@@ -89,6 +93,7 @@ lib/
 
 - Flutter SDK (Dart `^3.10.3`)
 - Android Studio / Xcode for an emulator/simulator
+- Target platforms: Android API 24+ (Flutter default `minSdk`) / iOS 13.0+
 
 ### Install & run
 
@@ -100,10 +105,15 @@ flutter run
 
 No backend is required — the app runs standalone and offline. On first launch it creates the local database and seeds 18 default categories.
 
-### App icon
+Backup is optional and needs its own setup — see [Google Cloud setup](#google-cloud-setup-for-backup). Without it every other feature still works.
+
+### App icon & launch screen
+
+Regenerate after changing `assets/icons/app_icon.png` or the splash colors in `pubspec.yaml`:
 
 ```bash
 dart run flutter_launcher_icons
+dart run flutter_native_splash:create
 ```
 
 ---
@@ -119,13 +129,18 @@ dart run flutter_launcher_icons
 
 ### Google Cloud setup (for backup)
 
-Backup talks to Google Sheets + Drive directly using the non-sensitive `drive.file` scope. In the Google Cloud project whose OAuth client is set in [auth_config.dart](lib/features/auth/auth_config.dart):
+Backup talks to Google Sheets + Drive directly using the non-sensitive `drive.file` scope. It needs your **own** Google Cloud project:
 
 1. Enable **Google Sheets API** and **Google Drive API**.
 2. Add the scope `.../auth/drive.file` to the OAuth consent screen and **publish the app to Production** (no Google verification needed for `drive.file`).
 3. Register the OAuth clients for your build:
    - **Android** — package name + the **signing SHA-1** (use the **release** keystore SHA-1 for distributed builds).
-   - **iOS** — bundle ID + `GIDClientID` in `ios/Runner/Info.plist`.
+   - **iOS** — bundle ID.
+4. Point the app at your clients:
+   - `AuthConfig.serverClientId` in [auth_config.dart](lib/features/auth/auth_config.dart) — replace the checked-in Web client ID with yours.
+   - `GIDClientID` in [ios/Runner/Info.plist](ios/Runner/Info.plist) — currently the placeholder `IOS_CLIENT_ID.apps.googleusercontent.com`, so **backup does not work on iOS until this is filled in**.
+
+> The client ID committed in `auth_config.dart` belongs to the original project. If you fork this repo and leave it as is, sign-in will fail (or hit someone else's OAuth client) — swap it before shipping.
 
 ---
 
@@ -135,7 +150,7 @@ Routing is handled by [`go_router`](lib/core/router/app_router.dart):
 
 `Splash → Set PIN (first launch) / Unlock (PIN) → Dashboard`
 
-The app does **not** require Google login to use — the PIN is the app lock (stored as a local SHA-256 hash). Google sign-in is requested only when you connect Google Sheets for backup.
+The app does **not** require Google login to use — the PIN is the app lock. It is never stored in plaintext: [`PinService`](lib/features/auth/application/services/pin_service.dart) hashes it with a per-PIN random salt (SHA-256) and keeps hash + salt in `flutter_secure_storage`. Google sign-in is requested only when you connect Google Sheets for backup.
 
 ---
 
@@ -154,6 +169,9 @@ For backup to work on a distributed build, register that build's **release SHA-1
 ## 🧪 Testing
 
 ```bash
-flutter test       # unit & widget tests (Drift runs on an in-memory database)
-flutter analyze    # lint
+flutter test              # unit & widget tests (Drift runs on an in-memory database)
+flutter test --coverage   # writes coverage/lcov.info
+flutter analyze           # lint
 ```
+
+Tests cover the DAOs (transactions, categories, salary periods, chart, summary), the PIN service, and backup serialization / restore / auto-backup — all against an in-memory Drift database, so no device or Google account is needed.
