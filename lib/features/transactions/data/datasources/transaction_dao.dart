@@ -1,6 +1,7 @@
 import 'package:drift/drift.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:pixel_pocket/core/database/app_database.dart';
+import 'package:pixel_pocket/core/error/failure.dart';
 import 'package:pixel_pocket/features/transactions/domain/models/transaction_filter.dart';
 import 'package:pixel_pocket/features/transactions/domain/models/transaction_model.dart';
 
@@ -51,22 +52,7 @@ class TransactionDao {
       ..limit(filter.limit, offset: (filter.page - 1) * filter.limit);
 
     final rows = await query.get();
-    return rows.map((row) {
-      final tx = row.readTable(t);
-      final cat = row.readTableOrNull(c);
-      return TransactionModel(
-        id: tx.id,
-        transactionDate: tx.transactionDate,
-        transactionType: tx.transactionType,
-        amount: tx.amount,
-        categoryId: tx.categoryId,
-        description: tx.description,
-        categoryName: cat?.name,
-        categoryColor: cat?.color,
-        createdAt: tx.createdAt,
-        updatedAt: tx.updatedAt,
-      );
-    }).toList();
+    return rows.map(_toModel).toList();
   }
 
   Future<TransactionModel> create(TransactionModel m) async {
@@ -104,8 +90,38 @@ class TransactionDao {
   }
 
   Future<TransactionModel> _byId(int id) async {
-    final list = await getAll(TransactionFilter(page: 1, limit: 1000000));
-    return list.firstWhere((t) => t.id == id);
+    final t = _db.transactions;
+    final c = _db.categories;
+
+    final row = await (_db.select(t).join([
+      leftOuterJoin(c, c.id.equalsExp(t.categoryId)),
+    ])..where(t.id.equals(id)))
+        .getSingleOrNull();
+
+    if (row == null) {
+      throw const Failure(
+        message: 'Transaction not found.',
+        type: FailureType.notFound,
+      );
+    }
+    return _toModel(row);
+  }
+
+  TransactionModel _toModel(TypedResult row) {
+    final tx = row.readTable(_db.transactions);
+    final cat = row.readTableOrNull(_db.categories);
+    return TransactionModel(
+      id: tx.id,
+      transactionDate: tx.transactionDate,
+      transactionType: tx.transactionType,
+      amount: tx.amount,
+      categoryId: tx.categoryId,
+      description: tx.description,
+      categoryName: cat?.name,
+      categoryColor: cat?.color,
+      createdAt: tx.createdAt,
+      updatedAt: tx.updatedAt,
+    );
   }
 }
 
