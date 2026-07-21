@@ -2,6 +2,7 @@ import 'package:drift/native.dart';
 import 'package:drift/drift.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:pixel_pocket/core/database/app_database.dart';
+import 'package:pixel_pocket/core/error/failure.dart';
 import 'package:pixel_pocket/features/transactions/data/datasources/transaction_dao.dart';
 import 'package:pixel_pocket/features/transactions/domain/models/transaction_filter.dart';
 import 'package:pixel_pocket/features/transactions/domain/models/transaction_model.dart';
@@ -78,6 +79,16 @@ void main() {
     final inPeriod = await dao.getAll(const TransactionFilter(salaryPeriodId: 9, limit: 20));
     expect(inPeriod.length, 1);
     expect(inPeriod.first.transactionDate, '2026-07-05');
+  });
+
+  test('update with unknown id throws Failure notFound', () async {
+    await expectLater(
+      dao.update(const TransactionModel(
+        id: 999, transactionDate: '2026-07-01', transactionType: 'expense',
+        amount: 10, categoryId: 1,
+      )),
+      throwsA(isA<Failure>().having((f) => f.type, 'type', FailureType.notFound)),
+    );
   });
 
   test('update and delete', () async {
