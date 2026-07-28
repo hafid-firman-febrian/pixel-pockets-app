@@ -31,7 +31,7 @@ class AppRoutes {
 
 const _navItems = [
   PixelNavItem(icon: Pixel.home, label: 'HOME', path: AppRoutes.dashboard),
-  PixelNavItem(icon: Pixel.list, label: 'TXN', path: AppRoutes.transactions),
+  PixelNavItem(icon: Pixel.reciept, label: 'TXN', path: AppRoutes.transactions),
   PixelNavItem(icon: Pixel.chartbar, label: 'CHART', path: AppRoutes.chart),
   PixelNavItem(
     icon: Pixel.sliders,
@@ -133,9 +133,8 @@ final routerProvider = Provider<GoRouter>((ref) {
       ),
     ],
 
-    errorBuilder: (context, state) => Scaffold(
-      body: Center(child: Text('Page not found: ${state.uri}')),
-    ),
+    errorBuilder: (context, state) =>
+        Scaffold(body: Center(child: Text('Page not found: ${state.uri}'))),
   );
 });
 
