@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:intl/intl.dart';
 import 'package:pixel_pocket/core/theme/app_color.dart';
 import 'package:pixel_pocket/core/theme/app_sizing.dart';
 import 'package:pixel_pocket/core/theme/app_spacing.dart';
@@ -35,6 +36,10 @@ class _PeriodFilterCardState extends ConsumerState<PeriodFilterCard> {
             AllPeriods() => 'All Periods',
             SpecificPeriod() => effective.valueOrNull?.name ?? '...',
           };
+    final periodDetails =
+        effective.valueOrNull != null && selection is! AllPeriods
+        ? '${DateFormat('d MMM').format(DateTime.parse(effective.valueOrNull!.startDate))} - ${DateFormat('d MMM').format(DateTime.parse(effective.valueOrNull!.endDate))}'
+        : '';
 
     return InkWell(
       onTap: _openPicker,
@@ -56,14 +61,26 @@ class _PeriodFilterCardState extends ConsumerState<PeriodFilterCard> {
                 enabled: effective.isLoading && !effective.hasValue,
                 child: Row(
                   children: [
-                    Text(
-                      label,
-                      style: AppTextStyles.bodyNormal.copyWith(
-                        color: AppColors.primary,
-                        fontWeight: FontWeight.w900,
-                      ),
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.end,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          label,
+                          style: AppTextStyles.bodyNormal.copyWith(
+                            color: AppColors.primary,
+                            fontWeight: FontWeight.w900,
+                          ),
+                        ),
+                        Text(
+                          periodDetails,
+                          style: AppTextStyles.overlineSm.copyWith(
+                            color: AppColors.textMuted,
+                          ),
+                        ),
+                      ],
                     ),
-                    SizedBox(width: AppSpacing.s6),
+                    SizedBox(width: AppSpacing.s8),
                     AnimatedRotation(
                       turns: _sheetOpen ? 0.5 : 0,
                       duration: const Duration(milliseconds: 200),
