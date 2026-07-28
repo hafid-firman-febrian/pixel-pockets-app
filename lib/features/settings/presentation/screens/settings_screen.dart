@@ -144,7 +144,9 @@ class _SalaryPeriodSectionState extends ConsumerState<_SalaryPeriodSection> {
     final years = byYear.keys.toList()..sort((a, b) => b.compareTo(a));
 
     if (!_initialized) {
-      _collapsedYears.addAll(years.skip(1));
+      final currentYear = DateTime.now().year.toString();
+
+      _collapsedYears.addAll(years.where((year) => year != currentYear));
       _initialized = true;
     }
 
@@ -257,14 +259,7 @@ class _YearGroupHeader extends StatelessWidget {
       onTap: onTap,
       child: Row(
         children: [
-          Expanded(
-            child: Text(
-              year,
-              style: AppTextStyles.overlineSm.copyWith(
-                color: AppColors.textMuted,
-              ),
-            ),
-          ),
+          Expanded(child: Text(year, style: AppTextStyles.bodyNormal)),
           AnimatedRotation(
             turns: expanded ? 0.5 : 0,
             duration: const Duration(milliseconds: 200),
@@ -467,10 +462,7 @@ class _SectionLabel extends StatelessWidget {
   Widget build(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.only(bottom: AppSpacing.s8),
-      child: Text(
-        text,
-        style: AppTextStyles.overlineSm.copyWith(color: AppColors.textMuted),
-      ),
+      child: Text(text, style: AppTextStyles.titleMd),
     );
   }
 }
