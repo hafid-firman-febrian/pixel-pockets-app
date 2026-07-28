@@ -72,12 +72,14 @@ class _PeriodFilterCardState extends ConsumerState<PeriodFilterCard> {
                             fontWeight: FontWeight.w900,
                           ),
                         ),
-                        Text(
-                          periodDetails,
-                          style: AppTextStyles.overlineSm.copyWith(
-                            color: AppColors.textMuted,
+                        if (periodDetails.isNotEmpty) ...[
+                          Text(
+                            periodDetails,
+                            style: AppTextStyles.overlineSm.copyWith(
+                              color: AppColors.textMuted,
+                            ),
                           ),
-                        ),
+                        ],
                       ],
                     ),
                     SizedBox(width: AppSpacing.s8),
