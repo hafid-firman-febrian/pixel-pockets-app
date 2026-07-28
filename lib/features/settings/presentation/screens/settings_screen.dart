@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:pixel_pocket/core/error/failure.dart';
 import 'package:pixel_pocket/core/theme/app_color.dart';
+import 'package:pixel_pocket/core/theme/app_sizing.dart';
 import 'package:pixel_pocket/core/theme/app_spacing.dart';
 import 'package:pixel_pocket/core/theme/app_text_style.dart';
 import 'package:pixel_pocket/core/widgets/pixel_button.dart';
@@ -101,11 +102,20 @@ class SettingsScreen extends ConsumerWidget {
   }
 }
 
-class _SalaryPeriodSection extends ConsumerWidget {
+class _SalaryPeriodSection extends ConsumerStatefulWidget {
   const _SalaryPeriodSection();
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<_SalaryPeriodSection> createState() =>
+      _SalaryPeriodSectionState();
+}
+
+class _SalaryPeriodSectionState extends ConsumerState<_SalaryPeriodSection> {
+  final Set<String> _collapsedYears = {};
+  bool _initialized = false;
+
+  @override
+  Widget build(BuildContext context) {
     final async = ref.watch(salaryPeriodProvider);
     return _DataCard(
       label: 'SALARY PERIOD',
@@ -120,16 +130,12 @@ class _SalaryPeriodSection extends ConsumerWidget {
         ),
         data: (periods) => periods.isEmpty
             ? const _EmptyHint('No salary periods yet')
-            : _grouped(context, ref, periods),
+            : _grouped(context, periods),
       ),
     );
   }
 
-  Widget _grouped(
-    BuildContext context,
-    WidgetRef ref,
-    List<SalaryPeriodModel> periods,
-  ) {
+  Widget _grouped(BuildContext context, List<SalaryPeriodModel> periods) {
     final byYear = <String, List<SalaryPeriodModel>>{};
     for (final p in periods) {
       final year = p.endDate.length >= 4 ? p.endDate.substring(0, 4) : '—';
@@ -137,24 +143,52 @@ class _SalaryPeriodSection extends ConsumerWidget {
     }
     final years = byYear.keys.toList()..sort((a, b) => b.compareTo(a));
 
+    if (!_initialized) {
+      _collapsedYears.addAll(years.skip(1));
+      _initialized = true;
+    }
+
     final sections = <Widget>[];
     for (final year in years) {
       if (sections.isNotEmpty) {
         sections.add(const SizedBox(height: AppSpacing.s12));
       }
-      sections.add(_SectionLabel(year));
+      final collapsed = _collapsedYears.contains(year);
       sections.add(
-        Wrap(
-          spacing: AppSpacing.s8,
-          runSpacing: AppSpacing.s8,
-          children: [
-            for (final p in byYear[year]!)
-              PixelChip(
-                label: p.name,
-                onTap: () => _open(context, existing: p),
-                onDelete: () => _delete(context, ref, p),
-              ),
-          ],
+        _YearGroupHeader(
+          year: year,
+          expanded: !collapsed,
+          onTap: () => setState(() {
+            if (collapsed) {
+              _collapsedYears.remove(year);
+            } else {
+              _collapsedYears.add(year);
+            }
+          }),
+        ),
+      );
+      sections.add(
+        AnimatedSize(
+          duration: const Duration(milliseconds: 200),
+          curve: Curves.easeOut,
+          alignment: Alignment.topLeft,
+          child: collapsed
+              ? const SizedBox.shrink()
+              : Padding(
+                  padding: const EdgeInsets.only(top: AppSpacing.s8),
+                  child: Wrap(
+                    spacing: AppSpacing.s8,
+                    runSpacing: AppSpacing.s8,
+                    children: [
+                      for (final p in byYear[year]!)
+                        PixelChip(
+                          label: p.name,
+                          onTap: () => _open(context, existing: p),
+                          onDelete: () => _delete(context, p),
+                        ),
+                    ],
+                  ),
+                ),
         ),
       );
     }
@@ -179,11 +213,7 @@ class _SalaryPeriodSection extends ConsumerWidget {
     }
   }
 
-  Future<void> _delete(
-    BuildContext context,
-    WidgetRef ref,
-    SalaryPeriodModel period,
-  ) async {
+  Future<void> _delete(BuildContext context, SalaryPeriodModel period) async {
     final messenger = ScaffoldMessenger.of(context);
     final confirmed = await showPixelConfirm(
       context,
@@ -207,6 +237,47 @@ class _SalaryPeriodSection extends ConsumerWidget {
         ),
       );
     }
+  }
+}
+
+class _YearGroupHeader extends StatelessWidget {
+  const _YearGroupHeader({
+    required this.year,
+    required this.expanded,
+    required this.onTap,
+  });
+
+  final String year;
+  final bool expanded;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: onTap,
+      child: Row(
+        children: [
+          Expanded(
+            child: Text(
+              year,
+              style: AppTextStyles.overlineSm.copyWith(
+                color: AppColors.textMuted,
+              ),
+            ),
+          ),
+          AnimatedRotation(
+            turns: expanded ? 0.5 : 0,
+            duration: const Duration(milliseconds: 200),
+            curve: Curves.easeOut,
+            child: const Icon(
+              Pixel.chevrondown,
+              size: AppSizing.iconSm,
+              color: AppColors.textMuted,
+            ),
+          ),
+        ],
+      ),
+    );
   }
 }
 
