@@ -17,23 +17,25 @@ Pixel Pocket adalah aplikasi **local-first**: Drift (SQLite on-device) adalah so
 
 ## Arsitektur
 
-Logic dan UI **wajib dipisah**. Setiap feature dibagi menjadi 4 blok utama (`data`, `domain`, `application`, `presentation`) dengan sub-lapisan berikut:
+Logic dan UI **wajib dipisah**. Feature yang memiliki data sendiri dibagi menjadi 4 blok utama (`data`, `domain`, `application`, `presentation`) dengan sub-lapisan berikut:
 
 ```
 features/<feature>/
 ├── data/
-│   ├── datasources/   ← Drift DAO — query AppDatabase, kembalikan domain model langsung
-│   └── repositories/  ← pass-through tipis ke DAO; domain, Failure
+│   ├── datasources/       ← Drift DAO — query AppDatabase, kembalikan domain model langsung
+│   └── repositories/      ← pass-through tipis ke DAO; domain, Failure
 ├── domain/
-│   └── models/        ← entity murni (tanpa JSON, Drift, Flutter, Riverpod)
+│   └── models/            ← entity murni (tanpa JSON, Drift, Flutter, Riverpod)
 ├── application/
-│   └── services/      ← business logic (tanpa Riverpod, tanpa widget)
+│   └── services/          ← business logic (tanpa Riverpod, tanpa widget)
 └── presentation/
-    ├── states/        ← Riverpod FutureProvider / StateProvider
-    ├── controllers/   ← glue Riverpod: panggil service, invalidate state
-    ├── screens/       ← UI only
-    └── widgets/
+    ├── states/            ← Riverpod FutureProvider / StateProvider
+    ├── controllers/       ← glue Riverpod: panggil service, invalidate state
+    └── screens/           ← UI only
+        └── widgets/       ← widget lokal milik screen di folder ini
 ```
+
+**Penempatan `widgets/`:** default-nya bersarang di dalam `screens/`, bukan sejajar dengannya. Widget baru ikut konvensi ini kecuali memang dipakai lintas-screen dalam satu feature.
 
 Tidak ada layer `dtos/`. Drift men-generate row class yang sudah *typed* langsung dari skema tabel yang kita kuasai sendiri (`core/database/tables.dart`) — bukan wire format eksternal yang butuh anti-corruption layer — jadi mapping row Drift → domain model dilakukan langsung inline di DAO.
 
@@ -49,6 +51,23 @@ Tidak ada layer `dtos/`. Drift men-generate row class yang sudah *typed* langsun
 | `presentation/controllers` | Riverpod (Ref), service | Drift, parsing |
 | `presentation/screens+widgets` | Widget, ref.watch | Drift, parsing, logic |
 
+### Lapisan per feature
+
+Tidak semua feature butuh 4 lapisan. Kondisi nyatanya:
+
+| Feature | `data` | `domain` | `application` | `presentation` |
+|---|:---:|:---:|:---:|:---:|
+| `transactions`, `categories`, `salary_period`, `chart`, `dashboard`, `auth` | ✓ | ✓ | ✓ | ✓ |
+| `backup` | ✓ | — | ✓ | ✓ |
+| `settings` | — | — | — | ✓ |
+
+Empat penyimpangan berikut **disengaja** — jangan "dirapikan" tanpa alasan kuat:
+
+- **`backup` tanpa `domain/`.** `backup_serialization.dart` men-serialize row class Drift secara langsung, karena backup adalah snapshot database, bukan entity bisnis. Alasan yang sama membuatnya berada di root `data/`, bukan di `datasources/`.
+- **`backup/application/auto_backup_coordinator.dart`** di root `application/`, bukan `services/` — dia scheduler (debounce timer + dirty flag), bukan business service.
+- **`settings` presentation-only.** `settings_screen.dart` adalah permukaan komposisi: merender widget dan controller milik `auth`, `backup`, `categories`, dan `salary_period`, tanpa state sendiri.
+- **`auth` menaruh widget di `presentation/widgets/`** (sejajar `screens/`), karena `PinScaffold`, `PinDots`, dan `PixelPinPad` dipakai bersama oleh Set PIN dan Unlock screen.
+
 ---
 
 ## Struktur Folder
@@ -56,31 +75,42 @@ Tidak ada layer `dtos/`. Drift men-generate row class yang sudah *typed* langsun
 ```
 lib/
 ├── core/
+│   ├── cache/
+│   │   └── cache_store.dart        ← wrapper shared_preferences (metadata lokal, bukan cache API)
 │   ├── database/
-│   │   ├── app_database.dart       ← Drift database + DAO registrations
-│   │   ├── tables.dart             ← definisi tabel Drift
+│   │   ├── app_database.dart       ← Drift database + DAO registrations (schemaVersion 1)
+│   │   ├── tables.dart             ← definisi tabel: Categories, SalaryPeriods, Transactions
 │   │   └── default_categories.dart ← seed 18 kategori default
 │   ├── error/
 │   │   └── failure.dart
 │   ├── router/
 │   │   └── app_router.dart         ← go_router
 │   ├── theme/
-│   │   └── app_color.dart          ← retro color scheme (lihat bagian Theme)
-│   ├── cache/
-│   │   └── cache_store.dart        ← wrapper shared_preferences (metadata lokal, bukan cache API)
-│   └── utils/
-│       └── currency_formatter.dart
+│   │   ├── app_theme.dart
+│   │   ├── app_color.dart          ← retro color scheme (lihat bagian Theme)
+│   │   ├── app_sizing.dart
+│   │   ├── app_spacing.dart
+│   │   └── app_text_style.dart
+│   ├── utils/
+│   │   ├── currency_formatter.dart
+│   │   └── thousands_input_formatter.dart
+│   └── widgets/                    ← komponen pixel dipakai lintas-feature
+│       ├── pixel_card.dart
+│       ├── pixel_button.dart
+│       └── …                       ← chip, bottom nav, bottom sheet, confirm dialog, error view
 ├── features/
 │   ├── auth/           ← PIN lock (local app lock) + Google sign-in (untuk backup)
-│   ├── backup/          ← Google Sheets backup/restore + auto-backup
-│   ├── dashboard/
-│   ├── transactions/
+│   ├── backup/         ← Google Sheets backup/restore + auto-backup
 │   ├── categories/
-│   ├── salary_period/
 │   ├── chart/
-│   └── settings/
+│   ├── dashboard/
+│   ├── salary_period/
+│   ├── settings/
+│   └── transactions/
 └── main.dart
 ```
+
+Widget di `core/widgets/` dipakai lintas-feature. Widget yang cuma dipakai satu feature tetap tinggal di `features/<feature>/presentation/screens/widgets/`.
 
 ---
 
