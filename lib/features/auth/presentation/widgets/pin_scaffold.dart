@@ -22,6 +22,7 @@ class PinScaffold extends StatefulWidget {
     this.onBack,
     this.keypadEnabled = true,
     this.subtitleError = false,
+    this.footer,
   });
 
   final String title;
@@ -40,6 +41,8 @@ class PinScaffold extends StatefulWidget {
   final bool keypadEnabled;
 
   final bool subtitleError;
+
+  final Widget? footer;
 
   @override
   State<PinScaffold> createState() => _PinScaffoldState();
@@ -134,6 +137,10 @@ class _PinScaffoldState extends State<PinScaffold>
                   enabled: widget.keypadEnabled,
                 ),
               ),
+              if (widget.footer != null) ...[
+                SizedBox(height: AppSpacing.s16),
+                widget.footer!,
+              ],
               SizedBox(height: AppSpacing.s16),
             ],
           ),
