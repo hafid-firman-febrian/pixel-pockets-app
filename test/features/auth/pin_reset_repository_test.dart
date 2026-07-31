@@ -1,4 +1,3 @@
-import 'package:drift/drift.dart' hide isNull;
 import 'package:drift/native.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:pixel_pocket/core/database/app_database.dart';
@@ -23,6 +22,19 @@ class _FakePinLocalDataSource implements PinLocalDataSource {
 
   @override
   Future<void> clear() async => stored = null;
+}
+
+/// [AppDatabase] whose [wipeAllData] always fails, so the wipe step can be
+/// forced to error without depending on drift's on-closed-connection
+/// behavior (a closed in-memory [NativeDatabase] does not actually throw on
+/// the next query in this drift version — verified empirically).
+class _ThrowingWipeDatabase extends AppDatabase {
+  _ThrowingWipeDatabase() : super.forTesting(NativeDatabase.memory());
+
+  @override
+  Future<void> wipeAllData() async {
+    throw Exception('simulated DB wipe failure');
+  }
 }
 
 void main() {
@@ -52,5 +64,15 @@ void main() {
     expect(await db.select(db.transactions).get(), isEmpty);
     expect((await db.select(db.categories).get()).length, 18);
     expect(pinLocal.stored, isNull);
+  });
+
+  test('wipeAll does not clear the PIN when the DB wipe fails', () async {
+    final throwingDb = _ThrowingWipeDatabase();
+    addTearDown(throwingDb.close);
+    final failingRepo = PinResetRepository(db: throwingDb, pinLocal: pinLocal);
+
+    await expectLater(failingRepo.wipeAll(), throwsA(anything));
+
+    expect(pinLocal.stored, isNotNull);
   });
 }

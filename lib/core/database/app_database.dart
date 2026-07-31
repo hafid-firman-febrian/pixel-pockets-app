@@ -77,8 +77,8 @@ class AppDatabase extends _$AppDatabase {
       await delete(transactions).go();
       await delete(salaryPeriods).go();
       await delete(categories).go();
+      await seedDefaultCategoriesIfEmpty();
     });
-    await seedDefaultCategoriesIfEmpty();
   }
 }
 
