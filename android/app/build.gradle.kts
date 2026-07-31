@@ -64,6 +64,15 @@ android {
             }
         }
     }
+
+       applicationVariants.all {
+        val variant = this
+        variant.outputs.all {
+            val output = this as com.android.build.gradle.internal.api.ApkVariantOutputImpl
+            val versionName = variant.versionName
+            output.outputFileName = "pixel-pocket-app-v${versionName}+${variant.versionCode}.apk"
+        }
+    }
 }
 
 flutter {
