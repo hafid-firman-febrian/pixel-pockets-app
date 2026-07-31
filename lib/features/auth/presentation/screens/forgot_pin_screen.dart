@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:pixel_pocket/core/error/failure.dart';
 import 'package:pixel_pocket/core/theme/app_color.dart';
 import 'package:pixel_pocket/core/theme/app_spacing.dart';
 import 'package:pixel_pocket/core/theme/app_text_style.dart';
@@ -45,7 +44,8 @@ class _ForgotPinScreenState extends ConsumerState<ForgotPinScreen> {
       widget.onSuccess?.call();
     } catch (e) {
       if (!mounted) return;
-      setState(() => _error = asFailure(e).toString());
+      debugPrint('resetForgottenPin failed: $e');
+      setState(() => _error = "Couldn't erase your data. Please try again.");
     } finally {
       if (mounted) setState(() => _submitting = false);
     }
@@ -53,65 +53,72 @@ class _ForgotPinScreenState extends ConsumerState<ForgotPinScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        leading: IconButton(
-          icon: const Icon(Pixel.arrowleft),
-          onPressed: () => Navigator.of(context).pop(),
+    return PopScope(
+      canPop: !_submitting,
+      child: Scaffold(
+        appBar: AppBar(
+          leading: IconButton(
+            icon: const Icon(Pixel.arrowleft),
+            onPressed: _submitting ? null : () => Navigator.of(context).pop(),
+          ),
         ),
-      ),
-      body: SafeArea(
-        child: SingleChildScrollView(
-          padding: AppSpacing.screenAll,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              const Icon(Pixel.warningbox, size: 48, color: AppColors.expense),
-              SizedBox(height: AppSpacing.s16),
-              Text(
-                'Forgot PIN?',
-                textAlign: TextAlign.center,
-                style: AppTextStyles.titleLg,
-              ),
-              SizedBox(height: AppSpacing.s8),
-              PixelCard(
-                padding: AppSpacing.card,
-                child: Text(
-                  'This will permanently erase all transactions, categories, '
-                  'and salary periods on this device, and reset your PIN. '
-                  'If Google Sheets backup is connected, it will be '
-                  'disconnected too. This cannot be undone.',
-                  style: AppTextStyles.bodyNormal.copyWith(
-                    color: AppColors.textSecondary,
+        body: SafeArea(
+          child: SingleChildScrollView(
+            padding: AppSpacing.screenAll,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                const Icon(
+                  Pixel.warningbox,
+                  size: 48,
+                  color: AppColors.expense,
+                ),
+                SizedBox(height: AppSpacing.s16),
+                Text(
+                  'Forgot PIN?',
+                  textAlign: TextAlign.center,
+                  style: AppTextStyles.titleLg,
+                ),
+                SizedBox(height: AppSpacing.s8),
+                PixelCard(
+                  padding: AppSpacing.card,
+                  child: Text(
+                    'This will permanently erase all transactions, categories, '
+                    'and salary periods on this device, and reset your PIN. '
+                    'If Google Sheets backup is connected, it will be '
+                    'disconnected too. This cannot be undone.',
+                    style: AppTextStyles.bodyNormal.copyWith(
+                      color: AppColors.textSecondary,
+                    ),
                   ),
                 ),
-              ),
-              SizedBox(height: AppSpacing.section),
-              const PixelFieldLabel('TYPE DELETE TO CONFIRM'),
-              TextField(
-                controller: _controller,
-                textCapitalization: TextCapitalization.characters,
-                enabled: !_submitting,
-                onChanged: (_) => setState(() {}),
-              ),
-              if (_error != null) ...[
-                SizedBox(height: AppSpacing.s8),
-                Text(
-                  _error!,
-                  style: AppTextStyles.bodyNormal.copyWith(
-                    color: AppColors.expense,
+                SizedBox(height: AppSpacing.section),
+                const PixelFieldLabel('TYPE DELETE TO CONFIRM'),
+                TextField(
+                  controller: _controller,
+                  textCapitalization: TextCapitalization.characters,
+                  enabled: !_submitting,
+                  onChanged: (_) => setState(() {}),
+                ),
+                if (_error != null) ...[
+                  SizedBox(height: AppSpacing.s8),
+                  Text(
+                    _error!,
+                    style: AppTextStyles.bodyNormal.copyWith(
+                      color: AppColors.expense,
+                    ),
                   ),
+                ],
+                SizedBox(height: AppSpacing.section),
+                PixelButton(
+                  label: 'Erase & Reset PIN',
+                  variant: PixelButtonVariant.danger,
+                  isFullWidth: true,
+                  isLoading: _submitting,
+                  onPressed: _canSubmit ? _submit : null,
                 ),
               ],
-              SizedBox(height: AppSpacing.section),
-              PixelButton(
-                label: 'Erase & Reset PIN',
-                variant: PixelButtonVariant.danger,
-                isFullWidth: true,
-                isLoading: _submitting,
-                onPressed: _canSubmit ? _submit : null,
-              ),
-            ],
+            ),
           ),
         ),
       ),
