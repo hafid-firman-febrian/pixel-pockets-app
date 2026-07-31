@@ -12,6 +12,7 @@ import 'package:pixel_pocket/core/widgets/pixel_button.dart';
 import 'package:pixel_pocket/core/widgets/pixel_card.dart';
 import 'package:pixel_pocket/core/widgets/pixel_confirm_dialog.dart';
 import 'package:pixel_pocket/core/widgets/pixel_error_view.dart';
+import 'package:pixel_pocket/core/widgets/pixel_snack_bar.dart';
 import 'package:pixel_pocket/features/categories/presentation/states/category_state.dart';
 import 'package:pixel_pocket/features/transactions/domain/models/transaction_model.dart';
 import 'package:pixel_pocket/features/transactions/presentation/controllers/transaction_controller.dart';
@@ -217,17 +218,13 @@ class TransactionScreen extends ConsumerWidget {
         .read(transactionsControllerProvider.notifier)
         .delete(tx.id);
     if (ok) {
-      messenger.showSnackBar(
-        const SnackBar(content: Text('Transaction deleted')),
-      );
+      messenger.showPixelSnackBar('Transaction deleted');
       return;
     }
 
     final error = ref.read(transactionsControllerProvider).error;
     final message = error is Failure ? error.message : 'Failed to delete';
-    messenger.showSnackBar(
-      SnackBar(content: Text(message), backgroundColor: AppColors.expense),
-    );
+    messenger.showPixelSnackBar(message, isError: true);
     ref.invalidate(transactionsControllerProvider);
   }
 }

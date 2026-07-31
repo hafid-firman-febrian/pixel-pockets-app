@@ -8,21 +8,22 @@ import 'package:pixel_pocket/core/theme/app_spacing.dart';
 import 'package:pixel_pocket/core/widgets/pixel_bottom_sheet.dart';
 import 'package:pixel_pocket/core/widgets/pixel_button.dart';
 import 'package:pixel_pocket/core/widgets/pixel_field_label.dart';
+import 'package:pixel_pocket/core/widgets/pixel_snack_bar.dart';
 import 'package:pixel_pocket/features/salary_period/domain/models/salary_period_model.dart';
 import 'package:pixel_pocket/features/salary_period/presentation/controllers/salary_period_controller.dart';
 import 'package:pixelarticons/pixel.dart';
 
-/// Bottom-sheet form to create or edit a salary period.
 class SalaryPeriodFormSheet extends ConsumerStatefulWidget {
   const SalaryPeriodFormSheet({super.key, this.existing});
 
-  /// When non-null the form edits this period instead of creating one.
   final SalaryPeriodModel? existing;
 
   bool get isEditing => existing != null;
 
-  /// Opens the sheet. Resolves to `true` when a period was saved.
-  static Future<bool?> show(BuildContext context, {SalaryPeriodModel? existing}) {
+  static Future<bool?> show(
+    BuildContext context, {
+    SalaryPeriodModel? existing,
+  }) {
     return showModalBottomSheet<bool>(
       context: context,
       isScrollControlled: true,
@@ -94,9 +95,9 @@ class _SalaryPeriodFormSheetState extends ConsumerState<SalaryPeriodFormSheet> {
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
     if (_end.isBefore(_start)) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('End date must be after start date')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showPixelSnackBar('End date must be after start date');
       return;
     }
     setState(() => _saving = true);
@@ -131,9 +132,7 @@ class _SalaryPeriodFormSheetState extends ConsumerState<SalaryPeriodFormSheet> {
       if (!mounted) return;
       setState(() => _saving = false);
       final message = e is Failure ? e.message : 'Failed to save period';
-      messenger.showSnackBar(
-        SnackBar(content: Text(message), backgroundColor: AppColors.expense),
-      );
+      messenger.showPixelSnackBar(message, isError: true);
     }
   }
 

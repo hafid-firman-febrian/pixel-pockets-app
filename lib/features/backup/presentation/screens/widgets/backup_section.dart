@@ -8,6 +8,7 @@ import 'package:pixel_pocket/core/theme/app_text_style.dart';
 import 'package:pixel_pocket/core/widgets/pixel_button.dart';
 import 'package:pixel_pocket/core/widgets/pixel_card.dart';
 import 'package:pixel_pocket/core/widgets/pixel_confirm_dialog.dart';
+import 'package:pixel_pocket/core/widgets/pixel_snack_bar.dart';
 import 'package:pixel_pocket/features/backup/application/auto_backup_coordinator.dart';
 import 'package:pixel_pocket/features/backup/presentation/controllers/backup_controller.dart';
 import 'package:pixel_pocket/features/backup/presentation/states/backup_state.dart';
@@ -166,16 +167,11 @@ class BackupSection extends ConsumerWidget {
     required String success,
   }) {
     if (ok) {
-      messenger.showSnackBar(SnackBar(content: Text(success)));
+      messenger.showPixelSnackBar(success);
       return;
     }
     final error = ref.read(backupControllerProvider).error;
-    messenger.showSnackBar(
-      SnackBar(
-        content: Text(asFailure(error).toString()),
-        backgroundColor: AppColors.expense,
-      ),
-    );
+    messenger.showPixelSnackBar(asFailure(error).toString(), isError: true);
   }
 }
 

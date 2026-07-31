@@ -10,6 +10,7 @@ import 'package:pixel_pocket/core/widgets/pixel_card.dart';
 import 'package:pixel_pocket/core/widgets/pixel_chip.dart';
 import 'package:pixel_pocket/core/widgets/pixel_confirm_dialog.dart';
 import 'package:pixel_pocket/core/widgets/pixel_error_view.dart';
+import 'package:pixel_pocket/core/widgets/pixel_snack_bar.dart';
 import 'package:pixel_pocket/features/auth/presentation/controllers/pin_controller.dart';
 import 'package:pixel_pocket/features/backup/presentation/screens/widgets/backup_section.dart';
 import 'package:pixel_pocket/features/categories/domain/models/category_model.dart';
@@ -207,10 +208,8 @@ class _SalaryPeriodSectionState extends ConsumerState<_SalaryPeriodSection> {
     final messenger = ScaffoldMessenger.of(context);
     final saved = await SalaryPeriodFormSheet.show(context, existing: existing);
     if (saved == true) {
-      messenger.showSnackBar(
-        SnackBar(
-          content: Text(existing == null ? 'Period created' : 'Period updated'),
-        ),
+      messenger.showPixelSnackBar(
+        existing == null ? 'Period created' : 'Period updated',
       );
     }
   }
@@ -228,16 +227,9 @@ class _SalaryPeriodSectionState extends ConsumerState<_SalaryPeriodSection> {
     if (!confirmed) return;
     try {
       await ref.read(salaryPeriodControllerProvider).delete(period.id);
-      messenger.showSnackBar(
-        const SnackBar(content: Text('Salary period deleted')),
-      );
+      messenger.showPixelSnackBar('Salary period deleted');
     } catch (_) {
-      messenger.showSnackBar(
-        const SnackBar(
-          content: Text('Failed to delete'),
-          backgroundColor: AppColors.expense,
-        ),
-      );
+      messenger.showPixelSnackBar('Failed to delete', isError: true);
     }
   }
 }
@@ -344,12 +336,8 @@ class _CategorySection extends ConsumerWidget {
     final messenger = ScaffoldMessenger.of(context);
     final saved = await CategoryFormSheet.show(context, existing: existing);
     if (saved == true) {
-      messenger.showSnackBar(
-        SnackBar(
-          content: Text(
-            existing == null ? 'Category created' : 'Category updated',
-          ),
-        ),
+      messenger.showPixelSnackBar(
+        existing == null ? 'Category created' : 'Category updated',
       );
     }
   }
@@ -371,14 +359,9 @@ class _CategorySection extends ConsumerWidget {
     if (!confirmed) return;
     try {
       await ref.read(categoryControllerProvider).delete(category.id);
-      messenger.showSnackBar(const SnackBar(content: Text('Category deleted')));
+      messenger.showPixelSnackBar('Category deleted');
     } catch (_) {
-      messenger.showSnackBar(
-        const SnackBar(
-          content: Text('Failed to delete'),
-          backgroundColor: AppColors.expense,
-        ),
-      );
+      messenger.showPixelSnackBar('Failed to delete', isError: true);
     }
   }
 }

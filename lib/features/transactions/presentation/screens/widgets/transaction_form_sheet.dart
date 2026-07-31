@@ -10,6 +10,7 @@ import 'package:pixel_pocket/core/utils/thousands_input_formatter.dart';
 import 'package:pixel_pocket/core/widgets/pixel_bottom_sheet.dart';
 import 'package:pixel_pocket/core/widgets/pixel_button.dart';
 import 'package:pixel_pocket/core/widgets/pixel_field_label.dart';
+import 'package:pixel_pocket/core/widgets/pixel_snack_bar.dart';
 import 'package:pixelarticons/pixel.dart';
 import 'package:pixel_pocket/features/categories/domain/models/category_model.dart';
 import 'package:pixel_pocket/features/categories/presentation/states/category_state.dart';
@@ -161,12 +162,7 @@ class _TransactionFormSheetState extends ConsumerState<TransactionFormSheet> {
   }
 
   void _showSnack(String message, {bool isError = false}) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(message),
-        backgroundColor: isError ? AppColors.expense : null,
-      ),
-    );
+    ScaffoldMessenger.of(context).showPixelSnackBar(message, isError: isError);
   }
 
   @override

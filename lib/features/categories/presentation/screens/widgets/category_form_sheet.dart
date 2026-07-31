@@ -6,6 +6,7 @@ import 'package:pixel_pocket/core/theme/app_spacing.dart';
 import 'package:pixel_pocket/core/widgets/pixel_bottom_sheet.dart';
 import 'package:pixel_pocket/core/widgets/pixel_button.dart';
 import 'package:pixel_pocket/core/widgets/pixel_field_label.dart';
+import 'package:pixel_pocket/core/widgets/pixel_snack_bar.dart';
 import 'package:pixel_pocket/features/categories/domain/models/category_model.dart';
 import 'package:pixel_pocket/features/categories/presentation/controllers/category_controller.dart';
 
@@ -88,9 +89,7 @@ class _CategoryFormSheetState extends ConsumerState<CategoryFormSheet> {
       if (!mounted) return;
       setState(() => _saving = false);
       final message = e is Failure ? e.message : 'Failed to save category';
-      messenger.showSnackBar(
-        SnackBar(content: Text(message), backgroundColor: AppColors.expense),
-      );
+      messenger.showPixelSnackBar(message, isError: true);
     }
   }
 
