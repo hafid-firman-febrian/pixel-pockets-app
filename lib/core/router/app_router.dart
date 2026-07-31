@@ -67,7 +67,8 @@ final routerProvider = Provider<GoRouter>((ref) {
 
       if (location == AppRoutes.splash ||
           location == AppRoutes.setPin ||
-          location == AppRoutes.unlock) {
+          location == AppRoutes.unlock ||
+          location == AppRoutes.resetPin) {
         return AppRoutes.dashboard;
       }
       return null;
