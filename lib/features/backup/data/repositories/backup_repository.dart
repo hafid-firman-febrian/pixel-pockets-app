@@ -35,8 +35,11 @@ class BackupRepository {
   }
 
   Future<void> disconnect() async {
-    await _auth.disconnect();
-    await _meta.clear();
+    try {
+      await _auth.disconnect();
+    } finally {
+      await _meta.clear();
+    }
   }
 
   Future<DateTime> backup() async {
