@@ -293,19 +293,27 @@ class _RestoreDecisionBanner extends StatelessWidget {
             ),
           ),
           const SizedBox(height: AppSpacing.s12),
-          PixelButton(
-            label: 'Restore',
-            size: PixelButtonSize.sm,
-            isFullWidth: true,
-            onPressed: busy ? null : onRestore,
-          ),
-          const SizedBox(height: AppSpacing.s8),
-          PixelButton(
-            label: 'Keep Local',
-            variant: PixelButtonVariant.secondary,
-            size: PixelButtonSize.sm,
-            isFullWidth: true,
-            onPressed: busy ? null : onKeepLocal,
+          Row(
+            children: [
+              Expanded(
+                child: PixelButton(
+                  label: 'Keep Local',
+                  variant: PixelButtonVariant.secondary,
+                  size: PixelButtonSize.sm,
+                  isFullWidth: true,
+                  onPressed: busy ? null : onKeepLocal,
+                ),
+              ),
+              const SizedBox(width: AppSpacing.s8),
+              Expanded(
+                child: PixelButton(
+                  label: 'Restore',
+                  size: PixelButtonSize.sm,
+                  isFullWidth: true,
+                  onPressed: busy ? null : onRestore,
+                ),
+              ),
+            ],
           ),
         ],
       ),

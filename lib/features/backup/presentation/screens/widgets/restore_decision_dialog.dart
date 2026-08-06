@@ -65,18 +65,27 @@ Future<RestoreDecision?> showRestoreDecisionDialog(
               ),
             ),
             const SizedBox(height: AppSpacing.s24),
-            PixelButton(
-              label: 'Restore',
-              icon: Pixel.clouddownload,
-              isFullWidth: true,
-              onPressed: () => Navigator.pop(ctx, RestoreDecision.restore),
-            ),
-            const SizedBox(height: AppSpacing.s8),
-            PixelButton(
-              label: 'Keep Local',
-              variant: PixelButtonVariant.secondary,
-              isFullWidth: true,
-              onPressed: () => Navigator.pop(ctx, RestoreDecision.keepLocal),
+            Row(
+              children: [
+                Expanded(
+                  child: PixelButton(
+                    label: 'Keep Local',
+                    variant: PixelButtonVariant.secondary,
+                    isFullWidth: true,
+                    onPressed: () =>
+                        Navigator.pop(ctx, RestoreDecision.keepLocal),
+                  ),
+                ),
+                const SizedBox(width: AppSpacing.s12),
+                Expanded(
+                  child: PixelButton(
+                    label: 'Restore',
+                    isFullWidth: true,
+                    onPressed: () =>
+                        Navigator.pop(ctx, RestoreDecision.restore),
+                  ),
+                ),
+              ],
             ),
           ],
         ),
