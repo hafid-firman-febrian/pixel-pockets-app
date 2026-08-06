@@ -17,6 +17,7 @@ Pixel Pocket records daily transactions, summarises balances, breaks spending do
 - [Auth & Security](#auth--security)
 - [Build & Distribution](#build--distribution)
 - [Testing](#testing)
+- [Changelog](#changelog)
 
 ---
 
@@ -30,8 +31,8 @@ Pixel Pocket records daily transactions, summarises balances, breaks spending do
 | **Salary Periods** | Group transactions by pay period instead of calendar month |
 | **Chart** | Income vs. expense time series — daily for week/month ranges, monthly for a full year (`fl_chart`) |
 | **Offline-first** | No network required; every summary and chart is a local Drift query |
-| **Backup & Restore** | Optional Google Sheets sync — manual *Backup Now* / *Restore*, plus debounced auto-backup after changes |
-| **Security** | Local app lock via PIN (per-PIN random salt + SHA-256, held in `flutter_secure_storage`) |
+| **Backup & Restore** | Optional Google Sheets sync — manual *Backup Now* / *Restore*, plus debounced auto-backup after changes. Connecting to a spreadsheet that already holds data prompts first and holds auto-backup until you decide |
+| **Security** | Local app lock via PIN (per-PIN random salt + SHA-256, held in `flutter_secure_storage`), with a destructive forgot-PIN recovery for a lost PIN |
 
 ---
 
@@ -171,7 +172,7 @@ dart run flutter_native_splash:create
 - **Source of truth** — the on-device Drift database. Fully usable offline, no account needed.
 - **First run** — launch, set a PIN, start recording. Categories are pre-seeded.
 - **Backup** — *Settings → Connect Google Sheets*, then **Backup Now**. Enable **Auto-backup** to sync after changes; it is debounced and best-effort, and never blocks a save.
-- **Restore** — install on the new device, connect the same Google account, then **Restore**. This replaces local data with the spreadsheet contents and requires confirmation.
+- **Restore** — install on the new device and connect the same Google account. If the spreadsheet already holds data, the app asks whether to **Restore** it or **Keep Local**, and *holds auto-backup* until you answer — otherwise a debounced auto-backup could overwrite the spreadsheet with the empty local database before you ever reached Settings. Restoring replaces local data with the spreadsheet contents. Dismissing the prompt keeps the hold in place and leaves a banner in Settings.
 
 > **Backup is a copy, not real-time sync.** Offline changes are lost on a device switch only if they were never backed up. The Settings screen surfaces the last backup time so you can tell.
 
@@ -198,9 +199,16 @@ Routing is handled by [`go_router`](lib/core/router/app_router.dart):
 
 ```
 Splash → Set PIN (first launch) / Unlock → Dashboard
+                                    ↳ Forgot PIN (/reset-pin) → Set PIN
 ```
 
 Google login is **not** required to use the app — the PIN is the app lock. It is never stored in plaintext: [`PinService`](lib/features/auth/application/services/pin_service.dart) derives a per-PIN random salt from `Random.secure()`, hashes `salt:pin` with SHA-256, and keeps the hash and salt in `flutter_secure_storage`. Google sign-in is requested only when connecting Google Sheets for backup.
+
+### Forgot PIN
+
+With no backend and no server-side identity, there is no way to prove ownership of a device without weakening the lock itself. The only recovery that does not is a full local wipe, so that is what [`ForgotPinScreen`](lib/features/auth/presentation/screens/forgot_pin_screen.dart) does: it erases every transaction, category, and salary period, reseeds the 18 defaults, clears the PIN, and disconnects Google Sheets backup (best-effort) so auto-backup cannot push the emptied database to the cloud.
+
+The entry point is deliberately awkward — a *Forgot PIN?* link that appears only during the 30-second lockout after six wrong attempts, leading to a full screen that requires typing `DELETE`. Recovering the data afterwards means a manual **Restore** from a backup taken *before* the wipe; there is no other path.
 
 ---
 
@@ -224,11 +232,17 @@ flutter test --coverage   # writes coverage/lcov.info
 flutter analyze           # lint
 ```
 
-19 test files run entirely against an in-memory Drift database, so no device, network, or Google account is needed:
+27 test files run entirely against an in-memory Drift database and mocked `SharedPreferences`, so no device, network, or Google account is needed:
 
 | Scope | Covered |
 |---|---|
 | DAOs | Transactions, categories, salary periods, chart, summary, plus range-filter behaviour |
-| Services | PIN hashing and verification, dashboard aggregation, auth controller |
-| Backup | Serialization, restore, full-database replace, auto-backup coordinator, metadata store |
-| Core | Database setup, cache store, `Failure` mapping, `PixelErrorView` widget |
+| Services | PIN hashing and verification, forgot-PIN reset orchestration, dashboard aggregation, auth controller |
+| Backup | Serialization, restore, full-database replace, auto-backup coordinator, metadata store, the restore-decision guard, and the Settings backup card |
+| Core | Database setup, full wipe, cache store, `Failure` mapping, `PixelErrorView` widget, router gating |
+
+---
+
+## Changelog
+
+Release history and upgrade notes live in [CHANGELOG.md](CHANGELOG.md).
