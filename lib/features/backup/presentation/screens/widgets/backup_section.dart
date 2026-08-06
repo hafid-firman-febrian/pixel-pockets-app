@@ -12,6 +12,7 @@ import 'package:pixel_pocket/core/widgets/pixel_snack_bar.dart';
 import 'package:pixel_pocket/features/backup/application/auto_backup_coordinator.dart';
 import 'package:pixel_pocket/features/backup/presentation/controllers/backup_controller.dart';
 import 'package:pixel_pocket/features/backup/presentation/states/backup_state.dart';
+import 'package:pixel_pocket/features/backup/presentation/screens/widgets/restore_decision_dialog.dart';
 import 'package:pixelarticons/pixel.dart';
 
 class BackupSection extends ConsumerWidget {
@@ -91,11 +92,19 @@ class BackupSection extends ConsumerWidget {
             ],
           ),
           const SizedBox(height: AppSpacing.s8),
-          _AutoBackupStatusRow(
-            autoBackupStatus: autoBackupStatus,
-            lastBackupAt: status.lastBackupAt,
-            isBackingUp: busy,
-          ),
+          if (status.needsRestoreDecision)
+            _RestoreDecisionBanner(
+              transactionCount: status.remoteTransactionCount,
+              busy: busy,
+              onRestore: () => _runRestore(context, ref),
+              onKeepLocal: () => _keepLocal(context, ref),
+            )
+          else
+            _AutoBackupStatusRow(
+              autoBackupStatus: autoBackupStatus,
+              lastBackupAt: status.lastBackupAt,
+              isBackingUp: busy,
+            ),
           const SizedBox(height: AppSpacing.section),
           PixelButton(
             label: 'Backup Now',
@@ -129,6 +138,36 @@ class BackupSection extends ConsumerWidget {
     final messenger = ScaffoldMessenger.of(context);
     final ok = await ref.read(backupControllerProvider.notifier).connect();
     _notify(messenger, ok, ref, success: 'Connected to Google Sheets');
+    if (!ok || !context.mounted) return;
+    if (!ref.read(backupStatusProvider).needsRestoreDecision) return;
+    await _askRestoreDecision(context, ref);
+  }
+
+  Future<void> _askRestoreDecision(BuildContext context, WidgetRef ref) async {
+    final decision = await showRestoreDecisionDialog(
+      context,
+      transactionCount: ref.read(backupStatusProvider).remoteTransactionCount,
+    );
+    if (decision == null || !context.mounted) return;
+    switch (decision) {
+      case RestoreDecision.restore:
+        await _runRestore(context, ref);
+      case RestoreDecision.keepLocal:
+        await _keepLocal(context, ref);
+    }
+  }
+
+  Future<void> _keepLocal(BuildContext context, WidgetRef ref) async {
+    final messenger = ScaffoldMessenger.of(context);
+    final ok = await ref
+        .read(backupControllerProvider.notifier)
+        .keepLocalData();
+    _notify(
+      messenger,
+      ok,
+      ref,
+      success: 'Data lokal dipakai — backup cloud akan ditimpa',
+    );
   }
 
   Future<void> _backup(BuildContext context, WidgetRef ref) async {
@@ -138,7 +177,6 @@ class BackupSection extends ConsumerWidget {
   }
 
   Future<void> _restore(BuildContext context, WidgetRef ref) async {
-    final messenger = ScaffoldMessenger.of(context);
     final confirmed = await showPixelConfirm(
       context,
       title: 'Restore data?',
@@ -149,7 +187,12 @@ class BackupSection extends ConsumerWidget {
       confirmVariant: PixelButtonVariant.danger,
       icon: Pixel.clouddownload,
     );
-    if (!confirmed) return;
+    if (!confirmed || !context.mounted) return;
+    await _runRestore(context, ref);
+  }
+
+  Future<void> _runRestore(BuildContext context, WidgetRef ref) async {
+    final messenger = ScaffoldMessenger.of(context);
     final ok = await ref.read(backupControllerProvider.notifier).restore();
     _notify(messenger, ok, ref, success: 'Data restored');
   }
@@ -211,5 +254,69 @@ class _AutoBackupStatusRow extends StatelessWidget {
   String _lastBackupLabel(DateTime? value) {
     if (value == null) return 'Belum pernah';
     return DateFormat('d MMM yyyy, HH:mm').format(value);
+  }
+}
+
+class _RestoreDecisionBanner extends StatelessWidget {
+  const _RestoreDecisionBanner({
+    required this.transactionCount,
+    required this.busy,
+    required this.onRestore,
+    required this.onKeepLocal,
+  });
+
+  final int? transactionCount;
+  final bool busy;
+  final VoidCallback onRestore;
+  final VoidCallback onKeepLocal;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: AppSpacing.cardSm,
+      decoration: BoxDecoration(
+        color: AppColors.surfaceVariant,
+        border: Border.all(color: AppColors.secondary),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            '⚠ Backup cloud belum dipakai',
+            style: AppTextStyles.bodyBold.copyWith(color: AppColors.secondary),
+          ),
+          const SizedBox(height: AppSpacing.s4),
+          Text(
+            restoreDecisionBannerMessage(transactionCount),
+            style: AppTextStyles.bodyNormal.copyWith(
+              color: AppColors.textSecondary,
+            ),
+          ),
+          const SizedBox(height: AppSpacing.s12),
+          Row(
+            children: [
+              Expanded(
+                child: PixelButton(
+                  label: 'Pakai data lokal',
+                  variant: PixelButtonVariant.secondary,
+                  size: PixelButtonSize.sm,
+                  isFullWidth: true,
+                  onPressed: busy ? null : onKeepLocal,
+                ),
+              ),
+              const SizedBox(width: AppSpacing.s8),
+              Expanded(
+                child: PixelButton(
+                  label: 'Restore',
+                  size: PixelButtonSize.sm,
+                  isFullWidth: true,
+                  onPressed: busy ? null : onRestore,
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
   }
 }
