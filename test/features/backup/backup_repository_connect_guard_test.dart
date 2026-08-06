@@ -41,6 +41,21 @@ class _ThrowingSheets extends SheetsDataSource {
   }
 }
 
+class _WritableSheets extends _StubSheets {
+  _WritableSheets(super.tabs);
+
+  final written = <String>[];
+
+  @override
+  Future<void> writeTab(
+    String spreadsheetId,
+    String tab,
+    List<List<Object?>> valuesWithHeader,
+  ) async {
+    written.add(tab);
+  }
+}
+
 BackupRepository _repo(AppDatabase db, BackupMetadataStore meta, SheetsDataSource sheets) =>
     BackupRepository(auth: _FakeAuth(), sheets: sheets, db: db, meta: meta);
 
@@ -132,5 +147,56 @@ void main() {
 
     expect(meta.needsRestoreDecision, false);
     expect(meta.remoteTransactionCount, isNull);
+  });
+
+  group('clearing the restore decision', () {
+    setUp(() async {
+      await meta.setSpreadsheetId('sheet123');
+      await meta.setNeedsRestoreDecision(true);
+      await meta.setRemoteTransactionCount(142);
+    });
+
+    test('keepLocalData clears the flag without touching the sheet', () async {
+      final sheets = _WritableSheets(_populatedTabs());
+      await _repo(db, meta, sheets).keepLocalData();
+
+      expect(meta.needsRestoreDecision, false);
+      expect(meta.remoteTransactionCount, isNull);
+      expect(sheets.written, isEmpty);
+    });
+
+    test('a successful backup clears the flag', () async {
+      final sheets = _WritableSheets(_populatedTabs());
+      await _repo(db, meta, sheets).backup();
+
+      expect(meta.needsRestoreDecision, false);
+      expect(meta.remoteTransactionCount, isNull);
+      expect(sheets.written, contains('Transactions'));
+    });
+
+    test('a successful restore clears the flag', () async {
+      final sheets = _WritableSheets({
+        'Categories': [categoriesHeader, ['7', 'Food', '#111111', 'expense']],
+        'SalaryPeriods': [salaryPeriodsHeader],
+        'Transactions': [
+          transactionsHeader,
+          ['99', '2026-07-05', 'expense', '12', '7', 'kopi', '', ''],
+        ],
+      });
+      await _repo(db, meta, sheets).restore();
+
+      expect(meta.needsRestoreDecision, false);
+      expect(meta.remoteTransactionCount, isNull);
+      expect((await db.select(db.transactions).getSingle()).id, 99);
+    });
+
+    test('a failed restore keeps the flag set', () async {
+      final repo = _repo(db, meta, _StubSheets(_emptyTabs()));
+
+      await expectLater(repo.restore(), throwsA(anything));
+
+      expect(meta.needsRestoreDecision, true);
+      expect(meta.remoteTransactionCount, 142);
+    });
   });
 }

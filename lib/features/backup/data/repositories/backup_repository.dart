@@ -81,6 +81,8 @@ class BackupRepository {
     }
   }
 
+  Future<void> keepLocalData() => _clearRestoreDecision();
+
   Future<DateTime> backup() async {
     try {
       final id = _meta.spreadsheetId ?? await _sheets.findOrCreateSpreadsheet();
@@ -113,6 +115,7 @@ class BackupRepository {
       ]);
       await _meta.setLastBackupAt(now);
       await _meta.setPendingBackup(false);
+      await _clearRestoreDecision();
       return now;
     } catch (e) {
       throw _asFailure(e);
@@ -139,6 +142,7 @@ class BackupRepository {
             .map((r) => transactionFromRow(padRow(r, transactionsHeader.length)))
             .toList(),
       );
+      await _clearRestoreDecision();
     } catch (e) {
       throw _asFailure(e);
     }
