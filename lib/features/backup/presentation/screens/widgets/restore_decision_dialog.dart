@@ -33,7 +33,7 @@ Future<RestoreDecision?> showRestoreDecisionDialog(
     builder: (ctx) => Dialog(
       backgroundColor: Colors.transparent,
       elevation: 0,
-      insetPadding: const EdgeInsets.symmetric(horizontal: AppSpacing.s32),
+      insetPadding: const EdgeInsets.symmetric(horizontal: AppSpacing.s16),
       child: PixelCard(
         elevated: true,
         padding: AppSpacing.card,
@@ -66,24 +66,20 @@ Future<RestoreDecision?> showRestoreDecisionDialog(
             ),
             const SizedBox(height: AppSpacing.s24),
             Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Expanded(
-                  child: PixelButton(
-                    label: 'Keep Local',
-                    variant: PixelButtonVariant.secondary,
-                    isFullWidth: true,
-                    onPressed: () =>
-                        Navigator.pop(ctx, RestoreDecision.keepLocal),
-                  ),
+                PixelButton(
+                  label: 'Keep Local',
+                  variant: PixelButtonVariant.secondary,
+                  size: PixelButtonSize.sm,
+                  onPressed: () =>
+                      Navigator.pop(ctx, RestoreDecision.keepLocal),
                 ),
                 const SizedBox(width: AppSpacing.s12),
-                Expanded(
-                  child: PixelButton(
-                    label: 'Restore',
-                    isFullWidth: true,
-                    onPressed: () =>
-                        Navigator.pop(ctx, RestoreDecision.restore),
-                  ),
+                PixelButton(
+                  label: 'Restore',
+                  size: PixelButtonSize.sm,
+                  onPressed: () => Navigator.pop(ctx, RestoreDecision.restore),
                 ),
               ],
             ),

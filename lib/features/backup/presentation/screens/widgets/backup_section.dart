@@ -23,6 +23,7 @@ class BackupSection extends ConsumerWidget {
     final status = ref.watch(backupStatusProvider);
     final autoBackupStatus = ref.watch(autoBackupStatusProvider);
     final isLoading = ref.watch(backupControllerProvider).isLoading;
+    final running = ref.watch(backupRunningActionProvider);
     final busy = isLoading || autoBackupStatus.running;
 
     if (!status.connected) {
@@ -96,6 +97,8 @@ class BackupSection extends ConsumerWidget {
             _RestoreDecisionBanner(
               transactionCount: status.remoteTransactionCount,
               busy: busy,
+              restoring: running == BackupAction.restore,
+              keepingLocal: running == BackupAction.keepLocal,
               onRestore: () => _runRestore(context, ref),
               onKeepLocal: () => _keepLocal(context, ref),
             )
@@ -110,7 +113,7 @@ class BackupSection extends ConsumerWidget {
             label: 'Backup Now',
             icon: Pixel.cloudupload,
             isFullWidth: true,
-            isLoading: busy,
+            isLoading: running == BackupAction.backup || autoBackupStatus.running,
             onPressed: busy ? null : () => _backup(context, ref),
           ),
           const SizedBox(height: AppSpacing.s8),
@@ -119,6 +122,7 @@ class BackupSection extends ConsumerWidget {
             icon: Pixel.clouddownload,
             variant: PixelButtonVariant.secondary,
             isFullWidth: true,
+            isLoading: running == BackupAction.restore,
             onPressed: busy ? null : () => _restore(context, ref),
           ),
           const SizedBox(height: AppSpacing.s8),
@@ -127,6 +131,7 @@ class BackupSection extends ConsumerWidget {
             icon: Pixel.unlink,
             variant: PixelButtonVariant.danger,
             isFullWidth: true,
+            isLoading: running == BackupAction.disconnect,
             onPressed: busy ? null : () => _disconnect(context, ref),
           ),
         ],
@@ -261,12 +266,16 @@ class _RestoreDecisionBanner extends StatelessWidget {
   const _RestoreDecisionBanner({
     required this.transactionCount,
     required this.busy,
+    required this.restoring,
+    required this.keepingLocal,
     required this.onRestore,
     required this.onKeepLocal,
   });
 
   final int? transactionCount;
   final bool busy;
+  final bool restoring;
+  final bool keepingLocal;
   final VoidCallback onRestore;
   final VoidCallback onKeepLocal;
 
@@ -294,24 +303,21 @@ class _RestoreDecisionBanner extends StatelessWidget {
           ),
           const SizedBox(height: AppSpacing.s12),
           Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Expanded(
-                child: PixelButton(
-                  label: 'Keep Local',
-                  variant: PixelButtonVariant.secondary,
-                  size: PixelButtonSize.sm,
-                  isFullWidth: true,
-                  onPressed: busy ? null : onKeepLocal,
-                ),
+              PixelButton(
+                label: 'Keep Local',
+                variant: PixelButtonVariant.secondary,
+                size: PixelButtonSize.sm,
+                isLoading: keepingLocal,
+                onPressed: busy ? null : onKeepLocal,
               ),
               const SizedBox(width: AppSpacing.s8),
-              Expanded(
-                child: PixelButton(
-                  label: 'Restore',
-                  size: PixelButtonSize.sm,
-                  isFullWidth: true,
-                  onPressed: busy ? null : onRestore,
-                ),
+              PixelButton(
+                label: 'Restore',
+                size: PixelButtonSize.sm,
+                isLoading: restoring,
+                onPressed: busy ? null : onRestore,
               ),
             ],
           ),

@@ -13,19 +13,27 @@ class BackupController extends AutoDisposeAsyncNotifier<void> {
 
   BackupService get _service => ref.read(backupServiceProvider);
 
-  Future<bool> connect() => _run(() => _service.connect());
-  Future<bool> backup() => _run(() => _service.backup());
-  Future<bool> disconnect() => _run(() => _service.disconnect());
-  Future<bool> keepLocalData() => _run(() => _service.keepLocalData());
+  Future<bool> connect() =>
+      _run(BackupAction.connect, () => _service.connect());
+  Future<bool> backup() => _run(BackupAction.backup, () => _service.backup());
+  Future<bool> disconnect() =>
+      _run(BackupAction.disconnect, () => _service.disconnect());
+  Future<bool> keepLocalData() =>
+      _run(BackupAction.keepLocal, () => _service.keepLocalData());
 
-  Future<bool> restore() => _run(() async {
+  Future<bool> restore() => _run(BackupAction.restore, () async {
     await _service.restore();
     _invalidateData();
   });
 
-  Future<bool> _run(Future<void> Function() action) async {
+  Future<bool> _run(
+    BackupAction runningAction,
+    Future<void> Function() action,
+  ) async {
+    ref.read(backupRunningActionProvider.notifier).state = runningAction;
     state = const AsyncLoading();
     state = await AsyncValue.guard(action);
+    ref.read(backupRunningActionProvider.notifier).state = null;
     ref.invalidate(backupStatusProvider);
     ref.read(autoBackupStatusProvider.notifier).sync();
     return !state.hasError;

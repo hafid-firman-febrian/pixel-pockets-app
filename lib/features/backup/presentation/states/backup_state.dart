@@ -17,6 +17,10 @@ class BackupStatus {
   final int? remoteTransactionCount;
 }
 
+enum BackupAction { connect, backup, restore, keepLocal, disconnect }
+
+final backupRunningActionProvider = StateProvider<BackupAction?>((ref) => null);
+
 final backupStatusProvider = Provider<BackupStatus>((ref) {
   final meta = ref.watch(backupMetadataStoreProvider);
   return BackupStatus(

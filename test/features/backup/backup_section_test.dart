@@ -3,14 +3,23 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:pixel_pocket/core/cache/cache_store.dart';
+import 'package:pixel_pocket/core/widgets/pixel_button.dart';
 import 'package:pixel_pocket/features/backup/presentation/screens/widgets/backup_section.dart';
 import 'package:pixel_pocket/features/backup/presentation/screens/widgets/restore_decision_dialog.dart';
+import 'package:pixel_pocket/features/backup/presentation/states/backup_state.dart';
 
-Future<Widget> _host(Map<String, Object> values) async {
+Future<Widget> _host(
+  Map<String, Object> values, {
+  BackupAction? running,
+}) async {
   SharedPreferences.setMockInitialValues(values);
   final prefs = await SharedPreferences.getInstance();
   return ProviderScope(
-    overrides: [sharedPreferencesProvider.overrideWithValue(prefs)],
+    overrides: [
+      sharedPreferencesProvider.overrideWithValue(prefs),
+      if (running != null)
+        backupRunningActionProvider.overrideWith((ref) => running),
+    ],
     child: const MaterialApp(
       home: Scaffold(body: SingleChildScrollView(child: BackupSection())),
     ),
@@ -18,9 +27,17 @@ Future<Widget> _host(Map<String, Object> values) async {
 }
 
 Future<void> _setNarrowSurface(WidgetTester tester) async {
-  await tester.binding.setSurfaceSize(const Size(320, 640));
+  await tester.binding.setSurfaceSize(const Size(360, 720));
   addTearDown(() => tester.binding.setSurfaceSize(null));
 }
+
+Finder _spinnerInsideButton(String label) => find.descendant(
+      of: find.ancestor(
+        of: find.text(label),
+        matching: find.byType(PixelButton),
+      ),
+      matching: find.byType(CircularProgressIndicator),
+    );
 
 void main() {
   testWidgets('shows the restore-decision banner instead of the synced row',
@@ -75,6 +92,52 @@ void main() {
 
     expect(find.textContaining('Synced'), findsOneWidget);
     expect(find.text('KEEP LOCAL'), findsNothing);
+  });
+
+  testWidgets('a running restore spins the Restore button, not Backup Now',
+      (tester) async {
+    await tester.pumpWidget(await _host(
+      {
+        'backup_spreadsheet_id': 'sheet123',
+        'backup_account_email': 'user@example.com',
+      },
+      running: BackupAction.restore,
+    ));
+    await tester.pump();
+
+    expect(_spinnerInsideButton('RESTORE'), findsOneWidget);
+    expect(_spinnerInsideButton('BACKUP NOW'), findsNothing);
+    expect(_spinnerInsideButton('DISCONNECT'), findsNothing);
+  });
+
+  testWidgets('a running backup spins Backup Now, not Restore', (tester) async {
+    await tester.pumpWidget(await _host(
+      {
+        'backup_spreadsheet_id': 'sheet123',
+        'backup_account_email': 'user@example.com',
+      },
+      running: BackupAction.backup,
+    ));
+    await tester.pump();
+
+    expect(_spinnerInsideButton('BACKUP NOW'), findsOneWidget);
+    expect(_spinnerInsideButton('RESTORE'), findsNothing);
+  });
+
+  testWidgets('a running keep-local spins the banner Keep Local button',
+      (tester) async {
+    await tester.pumpWidget(await _host(
+      {
+        'backup_spreadsheet_id': 'sheet123',
+        'backup_needs_restore_decision': true,
+        'backup_remote_tx_count': 142,
+      },
+      running: BackupAction.keepLocal,
+    ));
+    await tester.pump();
+
+    expect(_spinnerInsideButton('KEEP LOCAL'), findsOneWidget);
+    expect(_spinnerInsideButton('BACKUP NOW'), findsNothing);
   });
 
   testWidgets('banner lays out without overflow on a narrow screen',
