@@ -132,7 +132,7 @@ class BackupRepository {
       final periods = _dropHeader(await _sheets.readTab(id, 'SalaryPeriods'));
       final txs = _dropHeader(await _sheets.readTab(id, 'Transactions'));
       if (cats.isEmpty && periods.isEmpty && txs.isEmpty) {
-        throw const Failure(message: 'Tidak ada backup ditemukan untuk direstore.');
+        throw const Failure(message: 'No backup found to restore.');
       }
       await _db.replaceAll(
         categories: cats

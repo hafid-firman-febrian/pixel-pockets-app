@@ -166,7 +166,7 @@ class BackupSection extends ConsumerWidget {
       messenger,
       ok,
       ref,
-      success: 'Data lokal dipakai — backup cloud akan ditimpa',
+      success: 'Using local data — the cloud backup will be overwritten',
     );
   }
 
@@ -181,8 +181,8 @@ class BackupSection extends ConsumerWidget {
       context,
       title: 'Restore data?',
       message:
-          'Data lokal akan diganti dengan data dari Google Sheets. '
-          'Tindakan ini tidak bisa dibatalkan.',
+          'Your local data will be replaced with the data from Google Sheets. '
+          'This cannot be undone.',
       confirmLabel: 'Restore',
       confirmVariant: PixelButtonVariant.danger,
       icon: Pixel.clouddownload,
@@ -233,26 +233,26 @@ class _AutoBackupStatusRow extends StatelessWidget {
   Widget build(BuildContext context) {
     if (isBackingUp) {
       return Text(
-        'Sedang backup…',
+        'Backing up…',
         style: AppTextStyles.bodyNormal.copyWith(color: AppColors.textMuted),
       );
     }
 
     if (autoBackupStatus.pending) {
       return Text(
-        '⚠ Perubahan belum ter-backup',
+        '⚠ Changes not backed up yet',
         style: AppTextStyles.bodyNormal.copyWith(color: AppColors.secondary),
       );
     }
 
     return Text(
-      'Tersinkron — backup terakhir: ${_lastBackupLabel(lastBackupAt)}',
+      'Synced — last backup: ${_lastBackupLabel(lastBackupAt)}',
       style: AppTextStyles.bodyNormal.copyWith(color: AppColors.textMuted),
     );
   }
 
   String _lastBackupLabel(DateTime? value) {
-    if (value == null) return 'Belum pernah';
+    if (value == null) return 'Never';
     return DateFormat('d MMM yyyy, HH:mm').format(value);
   }
 }
@@ -282,7 +282,7 @@ class _RestoreDecisionBanner extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            '⚠ Backup cloud belum dipakai',
+            '⚠ Cloud backup not restored',
             style: AppTextStyles.bodyBold.copyWith(color: AppColors.secondary),
           ),
           const SizedBox(height: AppSpacing.s4),
@@ -293,27 +293,19 @@ class _RestoreDecisionBanner extends StatelessWidget {
             ),
           ),
           const SizedBox(height: AppSpacing.s12),
-          Row(
-            children: [
-              Expanded(
-                child: PixelButton(
-                  label: 'Pakai data lokal',
-                  variant: PixelButtonVariant.secondary,
-                  size: PixelButtonSize.sm,
-                  isFullWidth: true,
-                  onPressed: busy ? null : onKeepLocal,
-                ),
-              ),
-              const SizedBox(width: AppSpacing.s8),
-              Expanded(
-                child: PixelButton(
-                  label: 'Restore',
-                  size: PixelButtonSize.sm,
-                  isFullWidth: true,
-                  onPressed: busy ? null : onRestore,
-                ),
-              ),
-            ],
+          PixelButton(
+            label: 'Restore',
+            size: PixelButtonSize.sm,
+            isFullWidth: true,
+            onPressed: busy ? null : onRestore,
+          ),
+          const SizedBox(height: AppSpacing.s8),
+          PixelButton(
+            label: 'Keep Local',
+            variant: PixelButtonVariant.secondary,
+            size: PixelButtonSize.sm,
+            isFullWidth: true,
+            onPressed: busy ? null : onKeepLocal,
           ),
         ],
       ),

@@ -4,6 +4,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:pixel_pocket/core/cache/cache_store.dart';
 import 'package:pixel_pocket/features/backup/presentation/screens/widgets/backup_section.dart';
+import 'package:pixel_pocket/features/backup/presentation/screens/widgets/restore_decision_dialog.dart';
 
 Future<Widget> _host(Map<String, Object> values) async {
   SharedPreferences.setMockInitialValues(values);
@@ -14,6 +15,11 @@ Future<Widget> _host(Map<String, Object> values) async {
       home: Scaffold(body: SingleChildScrollView(child: BackupSection())),
     ),
   );
+}
+
+Future<void> _setNarrowSurface(WidgetTester tester) async {
+  await tester.binding.setSurfaceSize(const Size(320, 640));
+  addTearDown(() => tester.binding.setSurfaceSize(null));
 }
 
 void main() {
@@ -27,9 +33,9 @@ void main() {
     }));
     await tester.pump();
 
-    expect(find.textContaining('142 transaksi di Drive'), findsOneWidget);
-    expect(find.textContaining('Tersinkron'), findsNothing);
-    expect(find.text('PAKAI DATA LOKAL'), findsOneWidget);
+    expect(find.textContaining('142 transactions'), findsOneWidget);
+    expect(find.textContaining('Synced'), findsNothing);
+    expect(find.text('KEEP LOCAL'), findsOneWidget);
   });
 
   testWidgets('falls back to generic copy when the remote count is unknown',
@@ -40,7 +46,7 @@ void main() {
     }));
     await tester.pump();
 
-    expect(find.textContaining('Backup di Drive'), findsOneWidget);
+    expect(find.textContaining('Drive holds a backup'), findsOneWidget);
   });
 
   testWidgets('keeping local data dismisses the banner', (tester) async {
@@ -51,12 +57,12 @@ void main() {
     }));
     await tester.pump();
 
-    await tester.tap(find.text('PAKAI DATA LOKAL'));
+    await tester.tap(find.text('KEEP LOCAL'));
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 500));
 
-    expect(find.textContaining('142 transaksi di Drive'), findsNothing);
-    expect(find.textContaining('Tersinkron'), findsOneWidget);
+    expect(find.textContaining('142 transactions'), findsNothing);
+    expect(find.textContaining('Synced'), findsOneWidget);
   });
 
   testWidgets('shows the synced row when no decision is pending',
@@ -67,7 +73,84 @@ void main() {
     }));
     await tester.pump();
 
-    expect(find.textContaining('Tersinkron'), findsOneWidget);
-    expect(find.text('PAKAI DATA LOKAL'), findsNothing);
+    expect(find.textContaining('Synced'), findsOneWidget);
+    expect(find.text('KEEP LOCAL'), findsNothing);
+  });
+
+  testWidgets('banner lays out without overflow on a narrow screen',
+      (tester) async {
+    await _setNarrowSurface(tester);
+    await tester.pumpWidget(await _host({
+      'backup_spreadsheet_id': 'sheet123',
+      'backup_account_email': 'averylongaccountname@example.com',
+      'backup_needs_restore_decision': true,
+      'backup_remote_tx_count': 148291,
+    }));
+    await tester.pump();
+
+    expect(find.text('KEEP LOCAL'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('decision dialog lays out without overflow on a narrow screen',
+      (tester) async {
+    await _setNarrowSurface(tester);
+    late BuildContext ctx;
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: Builder(
+            builder: (context) {
+              ctx = context;
+              return const SizedBox.shrink();
+            },
+          ),
+        ),
+      ),
+    );
+
+    showRestoreDecisionDialog(ctx, transactionCount: 148291);
+    await tester.pumpAndSettle();
+
+    expect(find.text('Backup found'), findsOneWidget);
+    expect(find.text('RESTORE'), findsOneWidget);
+    expect(find.text('KEEP LOCAL'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('decision dialog returns keepLocal, restore, or null on dismiss',
+      (tester) async {
+    late BuildContext ctx;
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: Builder(
+            builder: (context) {
+              ctx = context;
+              return const SizedBox.shrink();
+            },
+          ),
+        ),
+      ),
+    );
+
+    final keepLocal = showRestoreDecisionDialog(ctx, transactionCount: 1);
+    await tester.pumpAndSettle();
+    expect(find.textContaining('1 transaction '), findsOneWidget);
+    await tester.tap(find.text('KEEP LOCAL'));
+    await tester.pumpAndSettle();
+    expect(await keepLocal, RestoreDecision.keepLocal);
+
+    final restore = showRestoreDecisionDialog(ctx, transactionCount: 3);
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('RESTORE'));
+    await tester.pumpAndSettle();
+    expect(await restore, RestoreDecision.restore);
+
+    final dismissed = showRestoreDecisionDialog(ctx, transactionCount: 3);
+    await tester.pumpAndSettle();
+    Navigator.of(ctx).pop();
+    await tester.pumpAndSettle();
+    expect(await dismissed, isNull);
   });
 }

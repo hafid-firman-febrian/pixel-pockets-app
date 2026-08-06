@@ -8,22 +8,20 @@ import 'package:pixelarticons/pixel.dart';
 
 enum RestoreDecision { restore, keepLocal }
 
-String restoreDecisionMessage(int? transactionCount) {
-  final subject = transactionCount == null
-      ? 'Google Drive berisi backup'
-      : 'Google Drive berisi $transactionCount transaksi';
-  return '$subject yang belum ada di HP ini.\n\n'
-      'Restore akan mengganti data lokal. Pakai data lokal akan menimpa '
-      'backup di Drive.';
+String _remoteSubject(int? transactionCount) {
+  if (transactionCount == null) return 'a backup';
+  if (transactionCount == 1) return '1 transaction';
+  return '$transactionCount transactions';
 }
 
-String restoreDecisionBannerMessage(int? transactionCount) {
-  final subject = transactionCount == null
-      ? 'Backup di Drive'
-      : '$transactionCount transaksi di Drive';
-  return '$subject belum ada di HP ini. Auto-backup ditahan agar tidak '
-      'menimpanya.';
-}
+String restoreDecisionMessage(int? transactionCount) =>
+    'Google Drive holds ${_remoteSubject(transactionCount)} not yet on this '
+    'phone.\n\nRestore replaces your local data. Keeping local data '
+    'overwrites the backup in Drive.';
+
+String restoreDecisionBannerMessage(int? transactionCount) =>
+    'Drive holds ${_remoteSubject(transactionCount)} not yet on this phone. '
+    'Auto-backup is on hold so it will not be overwritten.';
 
 Future<RestoreDecision?> showRestoreDecisionDialog(
   BuildContext context, {
@@ -53,7 +51,7 @@ Future<RestoreDecision?> showRestoreDecisionDialog(
                 const SizedBox(width: AppSpacing.s8),
                 Expanded(
                   child: Text(
-                    'Backup ditemukan',
+                    'Backup found',
                     style: AppTextStyles.headingSmall,
                   ),
                 ),
@@ -67,27 +65,18 @@ Future<RestoreDecision?> showRestoreDecisionDialog(
               ),
             ),
             const SizedBox(height: AppSpacing.s24),
-            Row(
-              children: [
-                Expanded(
-                  child: PixelButton(
-                    label: 'Pakai data lokal',
-                    variant: PixelButtonVariant.secondary,
-                    isFullWidth: true,
-                    onPressed: () =>
-                        Navigator.pop(ctx, RestoreDecision.keepLocal),
-                  ),
-                ),
-                const SizedBox(width: AppSpacing.s12),
-                Expanded(
-                  child: PixelButton(
-                    label: 'Restore',
-                    isFullWidth: true,
-                    onPressed: () =>
-                        Navigator.pop(ctx, RestoreDecision.restore),
-                  ),
-                ),
-              ],
+            PixelButton(
+              label: 'Restore',
+              icon: Pixel.clouddownload,
+              isFullWidth: true,
+              onPressed: () => Navigator.pop(ctx, RestoreDecision.restore),
+            ),
+            const SizedBox(height: AppSpacing.s8),
+            PixelButton(
+              label: 'Keep Local',
+              variant: PixelButtonVariant.secondary,
+              isFullWidth: true,
+              onPressed: () => Navigator.pop(ctx, RestoreDecision.keepLocal),
             ),
           ],
         ),
