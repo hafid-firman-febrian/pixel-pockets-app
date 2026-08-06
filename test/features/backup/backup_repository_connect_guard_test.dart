@@ -56,6 +56,37 @@ class _WritableSheets extends _StubSheets {
   }
 }
 
+class _WriteThrowingSheets extends _StubSheets {
+  _WriteThrowingSheets(super.tabs);
+
+  @override
+  Future<void> writeTab(
+    String spreadsheetId,
+    String tab,
+    List<List<Object?>> valuesWithHeader,
+  ) async {
+    throw Exception('write failed');
+  }
+}
+
+class _AssertingSheets extends _StubSheets {
+  _AssertingSheets(super.tabs, this.meta);
+
+  final BackupMetadataStore meta;
+  Object? assertionFailure;
+
+  @override
+  Future<List<List<Object?>>> readTab(String spreadsheetId, String tab) async {
+    try {
+      expect(meta.needsRestoreDecision, true);
+      expect(meta.isConnected, true);
+    } catch (e) {
+      assertionFailure ??= e;
+    }
+    return super.readTab(spreadsheetId, tab);
+  }
+}
+
 BackupRepository _repo(AppDatabase db, BackupMetadataStore meta, SheetsDataSource sheets) =>
     BackupRepository(auth: _FakeAuth(), sheets: sheets, db: db, meta: meta);
 
@@ -149,6 +180,62 @@ void main() {
     expect(meta.remoteTransactionCount, isNull);
   });
 
+  test('the flag is already up and the app already counts as connected before the inspection network calls run', () async {
+    final sheets = _AssertingSheets(_populatedTabs(), meta);
+    final repo = _repo(db, meta, sheets);
+
+    await repo.connect();
+
+    if (sheets.assertionFailure != null) throw sheets.assertionFailure!;
+  });
+
+  test('an all-zero Metadata summary falls through to counting the data tabs', () async {
+    final repo = _repo(
+      db,
+      meta,
+      _StubSheets({
+        'Metadata': [
+          ['key', 'value'],
+          ['categories', '0'],
+          ['salary_periods', '0'],
+          ['transactions', '0'],
+        ],
+        'Categories': [categoriesHeader, ['7', 'Food', '#111111', 'expense']],
+        'SalaryPeriods': [salaryPeriodsHeader],
+        'Transactions': [
+          transactionsHeader,
+          ['99', '2026-07-05', 'expense', '12', '7', 'kopi', '', ''],
+          ['100', '2026-07-06', 'expense', '15', '7', 'teh', '', ''],
+        ],
+      }),
+    );
+
+    await repo.connect();
+
+    expect(meta.needsRestoreDecision, true);
+    expect(meta.remoteTransactionCount, 2);
+  });
+
+  test('connect stores a zero transaction count as null', () async {
+    final repo = _repo(
+      db,
+      meta,
+      _StubSheets({
+        'Metadata': [
+          ['key', 'value'],
+          ['categories', '18'],
+          ['salary_periods', '0'],
+          ['transactions', '0'],
+        ],
+      }),
+    );
+
+    await repo.connect();
+
+    expect(meta.needsRestoreDecision, true);
+    expect(meta.remoteTransactionCount, isNull);
+  });
+
   group('clearing the restore decision', () {
     setUp(() async {
       await meta.setSpreadsheetId('sheet123');
@@ -194,6 +281,15 @@ void main() {
       final repo = _repo(db, meta, _StubSheets(_emptyTabs()));
 
       await expectLater(repo.restore(), throwsA(anything));
+
+      expect(meta.needsRestoreDecision, true);
+      expect(meta.remoteTransactionCount, 142);
+    });
+
+    test('a failed backup keeps the flag set', () async {
+      final repo = _repo(db, meta, _WriteThrowingSheets(_populatedTabs()));
+
+      await expectLater(repo.backup(), throwsA(anything));
 
       expect(meta.needsRestoreDecision, true);
       expect(meta.remoteTransactionCount, 142);

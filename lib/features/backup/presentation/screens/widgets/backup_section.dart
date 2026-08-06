@@ -11,8 +11,8 @@ import 'package:pixel_pocket/core/widgets/pixel_confirm_dialog.dart';
 import 'package:pixel_pocket/core/widgets/pixel_snack_bar.dart';
 import 'package:pixel_pocket/features/backup/application/auto_backup_coordinator.dart';
 import 'package:pixel_pocket/features/backup/presentation/controllers/backup_controller.dart';
-import 'package:pixel_pocket/features/backup/presentation/states/backup_state.dart';
 import 'package:pixel_pocket/features/backup/presentation/screens/widgets/restore_decision_dialog.dart';
+import 'package:pixel_pocket/features/backup/presentation/states/backup_state.dart';
 import 'package:pixelarticons/pixel.dart';
 
 class BackupSection extends ConsumerWidget {

@@ -26,6 +26,7 @@ class BackupRepository {
     try {
       final email = await _auth.connect();
       final id = await _sheets.findOrCreateSpreadsheet();
+      await _meta.setNeedsRestoreDecision(true);
       await _meta.setSpreadsheetId(id);
       await _meta.setAccountEmail(email);
       await _applyRemoteInspection(id);
@@ -39,7 +40,7 @@ class BackupRepository {
     final parsed = remoteSummaryFromMetadataRows(
       await _sheets.readTab(spreadsheetId, 'Metadata'),
     );
-    if (parsed != null) return parsed;
+    if (parsed != null && !parsed.isEmpty) return parsed;
 
     final cats = _dropHeader(await _sheets.readTab(spreadsheetId, 'Categories'));
     final periods =
@@ -61,7 +62,9 @@ class BackupRepository {
         return;
       }
       await _meta.setNeedsRestoreDecision(true);
-      await _meta.setRemoteTransactionCount(summary.transactions);
+      await _meta.setRemoteTransactionCount(
+        summary.transactions == 0 ? null : summary.transactions,
+      );
     } catch (_) {
       await _meta.setNeedsRestoreDecision(true);
       await _meta.setRemoteTransactionCount(null);
