@@ -18,6 +18,7 @@ Pixel Pocket records daily transactions, summarises balances, breaks spending do
 - [Build & Distribution](#build--distribution)
 - [Testing](#testing)
 - [Changelog](#changelog)
+- [License](#license)
 
 ---
 
@@ -246,3 +247,11 @@ flutter analyze           # lint
 ## Changelog
 
 Release history and upgrade notes live in [CHANGELOG.md](CHANGELOG.md).
+
+---
+
+## License
+
+**All rights reserved.** The absence of a `LICENSE` file is deliberate, not an oversight — this source is published to be read, not reused.
+
+You may browse and fork the repository on GitHub under GitHub's Terms of Service. Copying, modifying, redistributing, or publishing it — including a rebranded build submitted to an app store — requires written permission.
