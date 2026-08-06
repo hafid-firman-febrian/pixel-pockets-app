@@ -82,9 +82,8 @@ class BackupSection extends ConsumerWidget {
               ),
               Switch(
                 value: autoBackupStatus.enabled,
-                onChanged: (value) => ref
-                    .read(autoBackupCoordinatorProvider)
-                    .setEnabled(value),
+                onChanged: (value) =>
+                    ref.read(autoBackupCoordinatorProvider).setEnabled(value),
                 activeThumbColor: AppColors.primary,
                 activeTrackColor: AppColors.primary.withValues(alpha: 0.35),
                 inactiveThumbColor: AppColors.textMuted,
@@ -113,7 +112,8 @@ class BackupSection extends ConsumerWidget {
             label: 'Backup Now',
             icon: Pixel.cloudupload,
             isFullWidth: true,
-            isLoading: running == BackupAction.backup || autoBackupStatus.running,
+            isLoading:
+                running == BackupAction.backup || autoBackupStatus.running,
             onPressed: busy ? null : () => _backup(context, ref),
           ),
           const SizedBox(height: AppSpacing.s8),
@@ -305,19 +305,26 @@ class _RestoreDecisionBanner extends StatelessWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              PixelButton(
-                label: 'Keep Local',
-                variant: PixelButtonVariant.secondary,
-                size: PixelButtonSize.sm,
-                isLoading: keepingLocal,
-                onPressed: busy ? null : onKeepLocal,
+              Expanded(
+                child: PixelButton(
+                  label: 'Keep Local',
+                  variant: PixelButtonVariant.secondary,
+                  size: PixelButtonSize.sm,
+                  isFullWidth: true,
+
+                  isLoading: keepingLocal,
+                  onPressed: busy ? null : onKeepLocal,
+                ),
               ),
               const SizedBox(width: AppSpacing.s8),
-              PixelButton(
-                label: 'Restore',
-                size: PixelButtonSize.sm,
-                isLoading: restoring,
-                onPressed: busy ? null : onRestore,
+              Expanded(
+                child: PixelButton(
+                  label: 'Restore',
+                  size: PixelButtonSize.sm,
+                  isFullWidth: true,
+                  isLoading: restoring,
+                  onPressed: busy ? null : onRestore,
+                ),
               ),
             ],
           ),

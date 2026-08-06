@@ -68,18 +68,25 @@ Future<RestoreDecision?> showRestoreDecisionDialog(
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                PixelButton(
-                  label: 'Keep Local',
-                  variant: PixelButtonVariant.secondary,
-                  size: PixelButtonSize.sm,
-                  onPressed: () =>
-                      Navigator.pop(ctx, RestoreDecision.keepLocal),
+                Expanded(
+                  child: PixelButton(
+                    label: 'Keep Local',
+                    variant: PixelButtonVariant.secondary,
+                    size: PixelButtonSize.sm,
+                    isFullWidth: true,
+                    onPressed: () =>
+                        Navigator.pop(ctx, RestoreDecision.keepLocal),
+                  ),
                 ),
                 const SizedBox(width: AppSpacing.s12),
-                PixelButton(
-                  label: 'Restore',
-                  size: PixelButtonSize.sm,
-                  onPressed: () => Navigator.pop(ctx, RestoreDecision.restore),
+                Expanded(
+                  child: PixelButton(
+                    label: 'Restore',
+                    size: PixelButtonSize.sm,
+                    isFullWidth: true,
+                    onPressed: () =>
+                        Navigator.pop(ctx, RestoreDecision.restore),
+                  ),
                 ),
               ],
             ),
