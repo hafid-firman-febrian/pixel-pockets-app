@@ -63,3 +63,40 @@ TransactionsCompanion transactionFromRow(List<Object?> r) => TransactionsCompani
   createdAt: Value(_nullable(r[6])),
   updatedAt: Value(_nullable(r[7])),
 );
+
+class RemoteBackupSummary {
+  const RemoteBackupSummary({
+    required this.transactions,
+    required this.categories,
+    required this.salaryPeriods,
+    this.lastBackupAt,
+  });
+
+  final int transactions;
+  final int categories;
+  final int salaryPeriods;
+  final DateTime? lastBackupAt;
+
+  bool get isEmpty =>
+      transactions == 0 && categories == 0 && salaryPeriods == 0;
+}
+
+RemoteBackupSummary? remoteSummaryFromMetadataRows(List<List<Object?>> rows) {
+  final values = <String, String>{};
+  for (final row in rows) {
+    if (row.length < 2) continue;
+    values[_s(row[0])] = _s(row[1]);
+  }
+  final transactions = int.tryParse(values['transactions'] ?? '');
+  final categories = int.tryParse(values['categories'] ?? '');
+  final salaryPeriods = int.tryParse(values['salary_periods'] ?? '');
+  if (transactions == null && categories == null && salaryPeriods == null) {
+    return null;
+  }
+  return RemoteBackupSummary(
+    transactions: transactions ?? 0,
+    categories: categories ?? 0,
+    salaryPeriods: salaryPeriods ?? 0,
+    lastBackupAt: DateTime.tryParse(values['last_backup_at'] ?? ''),
+  );
+}
