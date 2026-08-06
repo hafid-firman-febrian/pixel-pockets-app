@@ -88,7 +88,7 @@ class _ForgotPinScreenState extends ConsumerState<ForgotPinScreen> {
                     'If Google Sheets backup is connected, it will be '
                     'disconnected too. This cannot be undone.',
                     style: AppTextStyles.bodyNormal.copyWith(
-                      color: AppColors.textSecondary,
+                      color: AppColors.secondary,
                     ),
                   ),
                 ),
