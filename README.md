@@ -232,7 +232,7 @@ flutter test --coverage   # writes coverage/lcov.info
 flutter analyze           # lint
 ```
 
-27 test files run entirely against an in-memory Drift database and mocked `SharedPreferences`, so no device, network, or Google account is needed:
+28 test files run entirely against an in-memory Drift database and mocked `SharedPreferences`, so no device, network, or Google account is needed:
 
 | Scope | Covered |
 |---|---|

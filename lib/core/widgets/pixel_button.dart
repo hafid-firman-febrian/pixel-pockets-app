@@ -273,14 +273,20 @@ class _PixelButtonState extends State<PixelButton>
                       ),
                     ],
 
-                    Text(
-                      (widget.label ?? '').toUpperCase(),
-                      style: TextStyle(
-                        fontSize: _fontSize,
-                        fontWeight: FontWeight.w700,
-                        color: fg,
-                        letterSpacing: 1.0,
-                        height: 1,
+                    Flexible(
+                      child: FittedBox(
+                        fit: BoxFit.scaleDown,
+                        child: Text(
+                          (widget.label ?? '').toUpperCase(),
+                          maxLines: 1,
+                          style: TextStyle(
+                            fontSize: _fontSize,
+                            fontWeight: FontWeight.w700,
+                            color: fg,
+                            letterSpacing: 1.0,
+                            height: 1,
+                          ),
+                        ),
                       ),
                     ),
 

@@ -27,7 +27,7 @@ Future<Widget> _host(
 }
 
 Future<void> _setNarrowSurface(WidgetTester tester) async {
-  await tester.binding.setSurfaceSize(const Size(360, 720));
+  await tester.binding.setSurfaceSize(const Size(320, 640));
   addTearDown(() => tester.binding.setSurfaceSize(null));
 }
 
