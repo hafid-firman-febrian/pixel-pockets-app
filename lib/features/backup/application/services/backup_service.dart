@@ -9,6 +9,7 @@ class BackupService {
   Future<void> disconnect() => _repo.disconnect();
   Future<DateTime> backup() => _repo.backup();
   Future<void> restore() => _repo.restore();
+  Future<void> keepLocalData() => _repo.keepLocalData();
 }
 
 final backupServiceProvider = Provider<BackupService>(

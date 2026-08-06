@@ -16,6 +16,7 @@ class BackupController extends AutoDisposeAsyncNotifier<void> {
   Future<bool> connect() => _run(() => _service.connect());
   Future<bool> backup() => _run(() => _service.backup());
   Future<bool> disconnect() => _run(() => _service.disconnect());
+  Future<bool> keepLocalData() => _run(() => _service.keepLocalData());
 
   Future<bool> restore() => _run(() async {
     await _service.restore();

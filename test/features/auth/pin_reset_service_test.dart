@@ -32,6 +32,9 @@ class _FakeBackupService implements BackupService {
 
   @override
   Future<void> restore() => throw UnimplementedError();
+
+  @override
+  Future<void> keepLocalData() => throw UnimplementedError();
 }
 
 void main() {
