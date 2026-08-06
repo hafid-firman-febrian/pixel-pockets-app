@@ -28,10 +28,49 @@ class BackupRepository {
       final id = await _sheets.findOrCreateSpreadsheet();
       await _meta.setSpreadsheetId(id);
       await _meta.setAccountEmail(email);
+      await _applyRemoteInspection(id);
       return email;
     } catch (e) {
       throw _asFailure(e);
     }
+  }
+
+  Future<RemoteBackupSummary> inspectRemote(String spreadsheetId) async {
+    final parsed = remoteSummaryFromMetadataRows(
+      await _sheets.readTab(spreadsheetId, 'Metadata'),
+    );
+    if (parsed != null) return parsed;
+
+    final cats = _dropHeader(await _sheets.readTab(spreadsheetId, 'Categories'));
+    final periods =
+        _dropHeader(await _sheets.readTab(spreadsheetId, 'SalaryPeriods'));
+    final txs =
+        _dropHeader(await _sheets.readTab(spreadsheetId, 'Transactions'));
+    return RemoteBackupSummary(
+      transactions: txs.length,
+      categories: cats.length,
+      salaryPeriods: periods.length,
+    );
+  }
+
+  Future<void> _applyRemoteInspection(String spreadsheetId) async {
+    try {
+      final summary = await inspectRemote(spreadsheetId);
+      if (summary.isEmpty) {
+        await _clearRestoreDecision();
+        return;
+      }
+      await _meta.setNeedsRestoreDecision(true);
+      await _meta.setRemoteTransactionCount(summary.transactions);
+    } catch (_) {
+      await _meta.setNeedsRestoreDecision(true);
+      await _meta.setRemoteTransactionCount(null);
+    }
+  }
+
+  Future<void> _clearRestoreDecision() async {
+    await _meta.setNeedsRestoreDecision(false);
+    await _meta.setRemoteTransactionCount(null);
   }
 
   Future<void> disconnect() async {
