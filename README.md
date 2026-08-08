@@ -1,6 +1,17 @@
+<div align="center">
+
 # Pixel Pocket
 
-**A local-first personal finance app for tracking income and expenses, built with Flutter and a retro pixel-art UI.**
+**Local-first personal finance, in pixels.**
+
+![Flutter](https://img.shields.io/badge/Flutter-3.x-1E1E1E?style=flat-square&logo=flutter&logoColor=54C5F8)
+![Dart](https://img.shields.io/badge/Dart-3.10-1E1E1E?style=flat-square&logo=dart&logoColor=40C4FF)
+![Drift](https://img.shields.io/badge/Drift-SQLite-1E1E1E?style=flat-square&logo=sqlite&logoColor=8FD3F4)
+![Riverpod](https://img.shields.io/badge/State-Riverpod-1E1E1E?style=flat-square)
+![Offline first](https://img.shields.io/badge/Offline--first-No%20backend-F5C842?style=flat-square)
+![License](https://img.shields.io/badge/License-All%20rights%20reserved-F5C842?style=flat-square)
+
+</div>
 
 Pixel Pocket records daily transactions, summarises balances, breaks spending down by category, and charts it over time. Every screen is computed on-device from an embedded SQLite database (Drift), so the app works **fully offline with no account and no backend to run**. Google Sheets is supported purely as an *optional* backup target for moving data between devices.
 
@@ -8,6 +19,7 @@ Pixel Pocket records daily transactions, summarises balances, breaks spending do
 
 ## Contents
 
+- [Screenshots](#screenshots)
 - [Features](#features)
 - [Tech Stack](#tech-stack)
 - [Architecture](#architecture)
@@ -22,6 +34,19 @@ Pixel Pocket records daily transactions, summarises balances, breaks spending do
 
 ---
 
+## Screenshots
+
+The four main tabs, captured on an iPhone simulator with seeded demo data:
+
+| Dashboard | Transactions | Chart | Settings |
+| :---: | :---: | :---: | :---: |
+| <img src="docs/screenshots/dashboard.png" width="100%" alt="Dashboard — period filter, balance summary, expenses by category"> | <img src="docs/screenshots/transactions.png" width="100%" alt="Transactions — search, range filters, and a day's entries"> | <img src="docs/screenshots/chart.png" width="100%" alt="Chart — income vs. expense time series"> | <img src="docs/screenshots/settings.png" width="100%" alt="Settings — salary periods and category management"> |
+| Period filter, balance summary, expenses by category, recent activity | Search, range filters, daily groups, add FAB | Income vs. expense time series (`fl_chart`) | Salary periods, categories, backup, PIN reset |
+
+<sub>Balances on the dashboard are hidden behind the app's built-in privacy toggle.</sub>
+
+---
+
 ## Features
 
 | Area | Capabilities |
@@ -32,8 +57,8 @@ Pixel Pocket records daily transactions, summarises balances, breaks spending do
 | **Salary Periods** | Group transactions by pay period instead of calendar month |
 | **Chart** | Income vs. expense time series — daily for week/month ranges, monthly for a full year (`fl_chart`) |
 | **Offline-first** | No network required; every summary and chart is a local Drift query |
-| **Backup & Restore** | Optional Google Sheets sync — manual *Backup Now* / *Restore*, plus debounced auto-backup after changes. Connecting to a spreadsheet that already holds data prompts first and holds auto-backup until you decide |
-| **Security** | Local app lock via PIN (per-PIN random salt + SHA-256, held in `flutter_secure_storage`), with a destructive forgot-PIN recovery for a lost PIN |
+| **Backup & Restore** | Optional Google Sheets sync — manual *Backup Now* / *Restore*, plus debounced auto-backup. A spreadsheet that already holds data prompts before anything is overwritten |
+| **Security** | Local app lock via PIN — per-PIN random salt + SHA-256 in `flutter_secure_storage`, plus a destructive forgot-PIN recovery |
 
 ---
 
