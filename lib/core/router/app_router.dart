@@ -10,6 +10,7 @@ import 'package:pixelarticons/pixel.dart';
 
 import '../../features/auth/presentation/controllers/auth_controller.dart';
 import '../../features/auth/presentation/controllers/pin_controller.dart';
+import '../../features/auth/presentation/screens/forgot_pin_screen.dart';
 import '../../features/auth/presentation/screens/set_pin_screen.dart';
 import '../../features/auth/presentation/screens/splash_screen.dart';
 import '../../features/auth/presentation/screens/unlock_pin_screen.dart';
@@ -21,6 +22,7 @@ class AppRoutes {
   static const splash = '/splash';
   static const setPin = '/set-pin';
   static const unlock = '/unlock';
+  static const resetPin = '/reset-pin';
   static const String dashboard = '/';
   static const String transactions = '/transactions';
   static const String addTransaction = '/transactions/add';
@@ -53,7 +55,9 @@ final routerProvider = Provider<GoRouter>((ref) {
       }
 
       if (auth is AuthLocked) {
-        return location == AppRoutes.unlock ? null : AppRoutes.unlock;
+        final allowed =
+            location == AppRoutes.unlock || location == AppRoutes.resetPin;
+        return allowed ? null : AppRoutes.unlock;
       }
 
       final hasPin = ref.read(pinControllerProvider);
@@ -63,7 +67,8 @@ final routerProvider = Provider<GoRouter>((ref) {
 
       if (location == AppRoutes.splash ||
           location == AppRoutes.setPin ||
-          location == AppRoutes.unlock) {
+          location == AppRoutes.unlock ||
+          location == AppRoutes.resetPin) {
         return AppRoutes.dashboard;
       }
       return null;
@@ -85,6 +90,14 @@ final routerProvider = Provider<GoRouter>((ref) {
         name: 'unlock',
 
         builder: (context, state) => UnlockPinScreen(
+          onSuccess: () => ref.read(authControllerProvider.notifier).unlock(),
+        ),
+      ),
+      GoRoute(
+        path: AppRoutes.resetPin,
+        name: 'resetPin',
+
+        builder: (context, state) => ForgotPinScreen(
           onSuccess: () => ref.read(authControllerProvider.notifier).unlock(),
         ),
       ),

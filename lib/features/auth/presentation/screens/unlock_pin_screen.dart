@@ -2,6 +2,8 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
+import 'package:pixel_pocket/core/router/app_router.dart';
 import 'package:pixel_pocket/features/auth/presentation/controllers/pin_controller.dart';
 import 'package:pixel_pocket/features/auth/presentation/widgets/pin_scaffold.dart';
 
@@ -107,6 +109,12 @@ class _UnlockPinScreenState extends ConsumerState<UnlockPinScreen> {
       subtitleError: _wrongAttempts > 0,
       onDigit: _onDigit,
       onBackspace: _onBackspace,
+      footer: _locked
+          ? TextButton(
+              onPressed: () => context.push(AppRoutes.resetPin),
+              child: const Text('Forgot PIN?'),
+            )
+          : null,
     );
   }
 }

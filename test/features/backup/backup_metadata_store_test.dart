@@ -44,4 +44,27 @@ void main() {
     await store.clear();
     expect(store.autoBackupEnabled, true);
   });
+
+  test('needsRestoreDecision defaults false, persists, and clears', () async {
+    final prefs = await SharedPreferences.getInstance();
+    final store = BackupMetadataStore(prefs);
+    expect(store.needsRestoreDecision, false);
+    await store.setNeedsRestoreDecision(true);
+    expect(store.needsRestoreDecision, true);
+    await store.clear();
+    expect(store.needsRestoreDecision, false);
+  });
+
+  test('remoteTransactionCount persists, resets to null, and clears', () async {
+    final prefs = await SharedPreferences.getInstance();
+    final store = BackupMetadataStore(prefs);
+    expect(store.remoteTransactionCount, isNull);
+    await store.setRemoteTransactionCount(142);
+    expect(store.remoteTransactionCount, 142);
+    await store.setRemoteTransactionCount(null);
+    expect(store.remoteTransactionCount, isNull);
+    await store.setRemoteTransactionCount(7);
+    await store.clear();
+    expect(store.remoteTransactionCount, isNull);
+  });
 }

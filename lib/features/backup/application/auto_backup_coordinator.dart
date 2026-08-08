@@ -71,6 +71,7 @@ class AutoBackupCoordinator {
   Future<void> _attempt() async {
     if (_running) return;
     if (!_meta.autoBackupEnabled || !_meta.isConnected) return;
+    if (_meta.needsRestoreDecision) return;
     _running = true;
     _onChanged?.call();
     try {

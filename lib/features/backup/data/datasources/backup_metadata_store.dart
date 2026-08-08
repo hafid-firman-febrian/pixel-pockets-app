@@ -12,6 +12,8 @@ class BackupMetadataStore {
   static const _kLastBackup = 'backup_last_at';
   static const _kPending = 'backup_pending';
   static const _kAutoEnabled = 'backup_auto_enabled';
+  static const _kNeedsRestoreDecision = 'backup_needs_restore_decision';
+  static const _kRemoteTxCount = 'backup_remote_tx_count';
 
   String? get spreadsheetId => _prefs.getString(_kSpreadsheetId);
   String? get accountEmail => _prefs.getString(_kEmail);
@@ -22,6 +24,9 @@ class BackupMetadataStore {
 
   bool get pendingBackup => _prefs.getBool(_kPending) ?? false;
   bool get autoBackupEnabled => _prefs.getBool(_kAutoEnabled) ?? true;
+  bool get needsRestoreDecision =>
+      _prefs.getBool(_kNeedsRestoreDecision) ?? false;
+  int? get remoteTransactionCount => _prefs.getInt(_kRemoteTxCount);
 
   bool get isConnected => spreadsheetId != null;
 
@@ -48,12 +53,25 @@ class BackupMetadataStore {
   Future<void> setAutoBackupEnabled(bool v) =>
       _prefs.setBool(_kAutoEnabled, v);
 
+  Future<void> setNeedsRestoreDecision(bool v) =>
+      _prefs.setBool(_kNeedsRestoreDecision, v);
+
+  Future<void> setRemoteTransactionCount(int? v) async {
+    if (v == null) {
+      await _prefs.remove(_kRemoteTxCount);
+    } else {
+      await _prefs.setInt(_kRemoteTxCount, v);
+    }
+  }
+
   Future<void> clear() async {
     await _prefs.remove(_kSpreadsheetId);
     await _prefs.remove(_kEmail);
     await _prefs.remove(_kLastBackup);
     await _prefs.remove(_kPending);
     await _prefs.remove(_kAutoEnabled);
+    await _prefs.remove(_kNeedsRestoreDecision);
+    await _prefs.remove(_kRemoteTxCount);
   }
 }
 

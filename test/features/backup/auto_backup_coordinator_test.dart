@@ -107,4 +107,38 @@ void main() {
     expect(container.read(autoBackupStatusProvider).enabled, false);
     expect(seen, [true, false]);
   });
+
+  test('does not back up while a restore decision is pending', () async {
+    final meta = await _store();
+    await meta.setNeedsRestoreDecision(true);
+    var calls = 0;
+    final c = AutoBackupCoordinator(
+      runBackup: () async => calls++, meta: meta, debounce: _fast);
+    await c.markDirty();
+    await Future<void>.delayed(const Duration(milliseconds: 60));
+    expect(calls, 0);
+    expect(meta.pendingBackup, true);
+    await c.flush();
+    expect(calls, 0);
+    await c.onResume();
+    expect(calls, 0);
+    c.dispose();
+  });
+
+  test('backs up the pending change once the restore decision is made', () async {
+    final meta = await _store();
+    await meta.setNeedsRestoreDecision(true);
+    var calls = 0;
+    final c = AutoBackupCoordinator(
+      runBackup: () async => calls++, meta: meta, debounce: _fast);
+    await c.markDirty();
+    await Future<void>.delayed(const Duration(milliseconds: 60));
+    expect(calls, 0);
+
+    await meta.setNeedsRestoreDecision(false);
+    await c.onResume();
+    expect(calls, 1);
+    expect(meta.pendingBackup, false);
+    c.dispose();
+  });
 }

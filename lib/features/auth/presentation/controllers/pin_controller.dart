@@ -1,5 +1,10 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:pixel_pocket/features/auth/application/services/pin_reset_service.dart';
 import 'package:pixel_pocket/features/auth/application/services/pin_service.dart';
+import 'package:pixel_pocket/features/categories/presentation/states/category_state.dart';
+import 'package:pixel_pocket/features/dashboard/presentation/states/dashboard_state.dart';
+import 'package:pixel_pocket/features/salary_period/presentation/states/salary_period_state.dart';
+import 'package:pixel_pocket/features/transactions/presentation/controllers/transaction_controller.dart';
 
 /// Owns the local PIN status and exposes set/verify/clear.
 ///
@@ -41,5 +46,19 @@ class PinController extends Notifier<bool?> {
   Future<void> clearPin() async {
     await _service.clearPin();
     state = false;
+  }
+
+  /// Forgot-PIN recovery: wipes local data (via [PinResetService]) then
+  /// marks no PIN as present. Rethrows on failure, leaving state untouched,
+  /// so the caller can show an error and let the user retry.
+  Future<void> resetForgottenPin() async {
+    await ref.read(pinResetServiceProvider).resetForgottenPin();
+    state = false;
+    ref.invalidate(categoriesProvider);
+    ref.invalidate(transactionsControllerProvider);
+    ref.invalidate(dashboardSummaryProvider);
+    ref.invalidate(expensesByCategoryProvider);
+    ref.invalidate(recentTransactionsProvider);
+    ref.invalidate(salaryPeriodProvider);
   }
 }

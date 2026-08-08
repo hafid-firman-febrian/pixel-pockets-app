@@ -26,18 +26,65 @@ class BackupRepository {
     try {
       final email = await _auth.connect();
       final id = await _sheets.findOrCreateSpreadsheet();
+      await _meta.setNeedsRestoreDecision(true);
       await _meta.setSpreadsheetId(id);
       await _meta.setAccountEmail(email);
+      await _applyRemoteInspection(id);
       return email;
     } catch (e) {
       throw _asFailure(e);
     }
   }
 
-  Future<void> disconnect() async {
-    await _auth.disconnect();
-    await _meta.clear();
+  Future<RemoteBackupSummary> inspectRemote(String spreadsheetId) async {
+    final parsed = remoteSummaryFromMetadataRows(
+      await _sheets.readTab(spreadsheetId, 'Metadata'),
+    );
+    if (parsed != null && !parsed.isEmpty) return parsed;
+
+    final cats = _dropHeader(await _sheets.readTab(spreadsheetId, 'Categories'));
+    final periods =
+        _dropHeader(await _sheets.readTab(spreadsheetId, 'SalaryPeriods'));
+    final txs =
+        _dropHeader(await _sheets.readTab(spreadsheetId, 'Transactions'));
+    return RemoteBackupSummary(
+      transactions: txs.length,
+      categories: cats.length,
+      salaryPeriods: periods.length,
+    );
   }
+
+  Future<void> _applyRemoteInspection(String spreadsheetId) async {
+    try {
+      final summary = await inspectRemote(spreadsheetId);
+      if (summary.isEmpty) {
+        await _clearRestoreDecision();
+        return;
+      }
+      await _meta.setNeedsRestoreDecision(true);
+      await _meta.setRemoteTransactionCount(
+        summary.transactions == 0 ? null : summary.transactions,
+      );
+    } catch (_) {
+      await _meta.setNeedsRestoreDecision(true);
+      await _meta.setRemoteTransactionCount(null);
+    }
+  }
+
+  Future<void> _clearRestoreDecision() async {
+    await _meta.setNeedsRestoreDecision(false);
+    await _meta.setRemoteTransactionCount(null);
+  }
+
+  Future<void> disconnect() async {
+    try {
+      await _auth.disconnect();
+    } finally {
+      await _meta.clear();
+    }
+  }
+
+  Future<void> keepLocalData() => _clearRestoreDecision();
 
   Future<DateTime> backup() async {
     try {
@@ -71,6 +118,7 @@ class BackupRepository {
       ]);
       await _meta.setLastBackupAt(now);
       await _meta.setPendingBackup(false);
+      await _clearRestoreDecision();
       return now;
     } catch (e) {
       throw _asFailure(e);
@@ -84,7 +132,7 @@ class BackupRepository {
       final periods = _dropHeader(await _sheets.readTab(id, 'SalaryPeriods'));
       final txs = _dropHeader(await _sheets.readTab(id, 'Transactions'));
       if (cats.isEmpty && periods.isEmpty && txs.isEmpty) {
-        throw const Failure(message: 'Tidak ada backup ditemukan untuk direstore.');
+        throw const Failure(message: 'No backup found to restore.');
       }
       await _db.replaceAll(
         categories: cats
@@ -97,6 +145,7 @@ class BackupRepository {
             .map((r) => transactionFromRow(padRow(r, transactionsHeader.length)))
             .toList(),
       );
+      await _clearRestoreDecision();
     } catch (e) {
       throw _asFailure(e);
     }

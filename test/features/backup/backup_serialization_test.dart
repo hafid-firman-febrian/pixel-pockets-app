@@ -1,4 +1,4 @@
-import 'package:drift/drift.dart' hide isNull;
+import 'package:drift/drift.dart' hide isNull, isNotNull;
 import 'package:drift/native.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:pixel_pocket/core/database/app_database.dart';
@@ -66,5 +66,57 @@ void main() {
     final companion = transactionFromRow(row);
     expect(companion.createdAt.value, isNull);
     expect(companion.updatedAt.value, isNull);
+  });
+
+  group('remoteSummaryFromMetadataRows', () {
+    test('parses counts and last backup time', () {
+      final summary = remoteSummaryFromMetadataRows([
+        ['key', 'value'],
+        ['schema_version', '1'],
+        ['last_backup_at', '2026-08-05T21:10:00.000'],
+        ['categories', '20'],
+        ['salary_periods', '3'],
+        ['transactions', '142'],
+      ]);
+      expect(summary, isNotNull);
+      expect(summary!.transactions, 142);
+      expect(summary.categories, 20);
+      expect(summary.salaryPeriods, 3);
+      expect(summary.lastBackupAt, DateTime.parse('2026-08-05T21:10:00.000'));
+      expect(summary.isEmpty, false);
+    });
+
+    test('returns null when no count key is parsable', () {
+      expect(remoteSummaryFromMetadataRows([]), isNull);
+      expect(remoteSummaryFromMetadataRows([['key', 'value']]), isNull);
+      expect(
+        remoteSummaryFromMetadataRows([
+          ['key', 'value'],
+          ['schema_version', '1'],
+          ['transactions', 'abc'],
+        ]),
+        isNull,
+      );
+    });
+
+    test('treats all-zero counts as empty and tolerates missing keys', () {
+      final summary = remoteSummaryFromMetadataRows([
+        ['key', 'value'],
+        ['transactions', '0'],
+      ]);
+      expect(summary, isNotNull);
+      expect(summary!.isEmpty, true);
+      expect(summary.categories, 0);
+      expect(summary.lastBackupAt, isNull);
+    });
+
+    test('ignores malformed short rows', () {
+      final summary = remoteSummaryFromMetadataRows([
+        ['key'],
+        [],
+        ['transactions', '5'],
+      ]);
+      expect(summary!.transactions, 5);
+    });
   });
 }
